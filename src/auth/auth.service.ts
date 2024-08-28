@@ -48,16 +48,17 @@ export class AuthService {
   
 
   async login(user: any) {
-    const payload = { username: user.email, sub: user.id, roles: user.roles };
+    const payload = { id: user.id, email: user.email, roles: user.roles };
     const accessToken = this.jwtService.sign(payload);
-
+  
     const refreshToken = await this.refreshTokenService.generateRefreshToken(user);
-
+  
     return {
       accessToken,
       refreshToken: refreshToken.token,
     };
   }
+  
 
   async register(createUserDto: CreateUserDto): Promise<any> {
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);

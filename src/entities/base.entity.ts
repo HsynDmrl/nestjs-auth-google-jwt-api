@@ -1,4 +1,3 @@
-// src/entities/base.entity.ts
 import { PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 

@@ -8,11 +8,14 @@ import { AdminUsersModule } from './adminPanel/admin-users/admin-users.module';
 import { AuthModule } from './auth/auth.module';
 import { AdminRolesModule } from './adminPanel/admin-roles/admin-roles.module';
 import { SeedModule } from './seed/seed.module';
+import { PermissionsService } from './adminPanel/permissions/permissions.service';
+import { PermissionsController } from './adminPanel/permissions/permissions.controller';
+import { PermissionsModule } from './adminPanel/permissions/permissions.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // ConfigModule'u global yapar, böylece her yerde kullanabilirsiniz.
+      isGlobal: true,
     }),
     DatabaseModule,
     UsersModule,
@@ -20,8 +23,9 @@ import { SeedModule } from './seed/seed.module';
     AuthModule,
     AdminRolesModule,
     SeedModule,
+    PermissionsModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, PermissionsController],
+  providers: [AppService, PermissionsService],
 })
 export class AppModule {}

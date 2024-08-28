@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 export class PasswordResetService {
   constructor(
     @InjectRepository(PasswordReset)
-    private passwordResetRepository: Repository<PasswordReset>, // Doğru inject ediliyor
+    private passwordResetRepository: Repository<PasswordReset>,
   ) {}
 
   async createPasswordResetToken(user: User): Promise<PasswordReset> {

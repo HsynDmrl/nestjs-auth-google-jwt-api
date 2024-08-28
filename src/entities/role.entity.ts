@@ -1,6 +1,7 @@
-import { Entity, Column, ManyToMany } from 'typeorm';
+import { Entity, Column, ManyToMany, JoinTable } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
+import { Permission } from './permission.entity';
 
 @Entity()
 export class Role extends BaseEntity {
@@ -9,4 +10,9 @@ export class Role extends BaseEntity {
 
   @ManyToMany(() => User, user => user.roles)
   users: User[];
+
+  @ManyToMany(() => Permission, permission => permission.roles)
+  @JoinTable()
+  permissions: Permission[];
+
 }
