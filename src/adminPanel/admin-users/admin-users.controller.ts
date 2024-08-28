@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, Put } from '@nestjs/common';
+import { Controller, Get, Query, Post, Body, Param, Delete, Put } from '@nestjs/common';
 import { AdminUsersService } from './admin-users.service';
 import { User } from 'src/entities/user.entity';
 
@@ -8,20 +8,29 @@ export class AdminUsersController {
 
   // Tüm aktif kullanıcıları getirir
   @Get('active')
-  findAll(): Promise<User[]> {
-    return this.adminUsersService.findAll();
+  findAll(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10
+  ): Promise<{ users: User[], total: number, totalPages: number }> {
+    return this.adminUsersService.findAll(page, limit);
   }
 
   // Tüm pasif kullanıcıları getirir
   @Get('inactive')
-  findAllInactive(): Promise<User[]> {
-    return this.adminUsersService.findAllInactive();
+  findAllInactive(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10
+  ): Promise<{ users: User[], total: number, totalPages: number }> {
+    return this.adminUsersService.findAllInactive(page, limit);
   }
 
   // Silinmiş kullanıcılar da dahil olmak üzere tüm kullanıcıları getirir
   @Get('getAll')
-  findAllIncludingDeleted(): Promise<User[]> {
-    return this.adminUsersService.findAllIncludingDeleted();
+  findAllIncludingDeleted(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10
+  ): Promise<{ users: User[], total: number, totalPages: number }> {
+    return this.adminUsersService.findAllIncludingDeleted(page, limit);
   }
 
   // Belirli bir kullanıcıyı getirir
@@ -32,32 +41,33 @@ export class AdminUsersController {
 
   // Yeni bir kullanıcı oluşturur
   @Post('add')
-  create(@Body() user: User): Promise<User> {
-    return this.adminUsersService.create(user);
+  create(@Body() userDto: { user: User, roleIds: string[] }): Promise<User> {
+    const { user, roleIds } = userDto;
+    return this.adminUsersService.create(user, roleIds);
   }
 
   // Belirli bir kullanıcıyı günceller
   @Put('update/:id')
-  update(@Param('id') id: string, @Body() user: User): Promise<User> {
-    user.id = id;
-    return this.adminUsersService.create(user); 
+  update(@Param('id') id: string, @Body() userDto: { user: User, roleIds: string[] }): Promise<User> {
+    const { user, roleIds } = userDto;
+    return this.adminUsersService.update(id, user, roleIds);
   }
 
   // Belirli bir kullanıcıyı pasif yapar (soft delete)
   @Delete('soft/:id')
-  softRemove(@Param('id') id: string): Promise<void> {
+  async softRemove(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminUsersService.softRemove(id);
   }
 
   // Belirli bir kullanıcıyı geri yükler
   @Put('restore/:id')
-  restore(@Param('id') id: string): Promise<void> {
+  async restore(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminUsersService.restore(id);
   }
 
   // Belirli bir kullanıcıyı kalıcı olarak siler (hard delete)
   @Delete('hard/:id')
-  remove(@Param('id') id: string): Promise<void> {
+  async remove(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminUsersService.remove(id);
   }
 }

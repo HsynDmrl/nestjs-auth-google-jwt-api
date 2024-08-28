@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, Put } from '@nestjs/common';
+import { Controller, Get, Query, Post, Body, Param, Delete, Put } from '@nestjs/common';
 import { AdminRolesService } from './admin-roles.service';
 import { Role } from 'src/entities/role.entity';
 
@@ -8,20 +8,29 @@ export class AdminRolesController {
 
   // Tüm aktif rolleri getirir
   @Get('active')
-  findAll(): Promise<Role[]> {
-    return this.adminRolesService.findAll();
+  findAll(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10
+  ): Promise<{ roles: Role[], total: number, totalPages: number }> {
+    return this.adminRolesService.findAll(page, limit);
   }
 
   // Tüm pasif rolleri getirir
   @Get('inactive')
-  findAllInactive(): Promise<Role[]> {
-    return this.adminRolesService.findAllInactive();
+  findAllInactive(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10
+  ): Promise<{ roles: Role[], total: number, totalPages: number }> {
+    return this.adminRolesService.findAllInactive(page, limit);
   }
 
   // Silinmiş roller de dahil olmak üzere tüm rolleri getirir
   @Get('getAll')
-  findAllIncludingDeleted(): Promise<Role[]> {
-    return this.adminRolesService.findAllIncludingDeleted();
+  findAllIncludingDeleted(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10
+  ): Promise<{ roles: Role[], total: number, totalPages: number }> {
+    return this.adminRolesService.findAllIncludingDeleted(page, limit);
   }
 
   // Belirli bir rolü getirir
@@ -39,25 +48,24 @@ export class AdminRolesController {
   // Belirli bir rolü günceller
   @Put('update/:id')
   update(@Param('id') id: string, @Body() role: Role): Promise<Role> {
-    role.id = id;
-    return this.adminRolesService.update(role);
+    return this.adminRolesService.update(id, role);
   }
 
   // Belirli bir rolü pasif yapar (soft delete)
   @Delete('soft/:id')
-  softRemove(@Param('id') id: string): Promise<void> {
+  softRemove(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminRolesService.softRemove(id);
   }
 
   // Belirli bir rolü geri yükler
   @Put('restore/:id')
-  restore(@Param('id') id: string): Promise<void> {
+  restore(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminRolesService.restore(id);
   }
 
   // Belirli bir rolü kalıcı olarak siler (hard delete)
   @Delete('hard/:id')
-  remove(@Param('id') id: string): Promise<void> {
+  remove(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminRolesService.remove(id);
   }
 }

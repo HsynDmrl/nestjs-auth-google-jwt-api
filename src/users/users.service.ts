@@ -22,10 +22,9 @@ export class UsersService {
   async findOneById(id: string): Promise<User | undefined> {
     return this.usersRepository.findOne({
       where: { id },
-      select: ['id', 'name', 'email', 'password', 'emailConfirmed'], // Şifreyi de seçiyoruz
+      select: ['id', 'name', 'email', 'password', 'emailConfirmed'],
     });
   }
-  
   
   async create(createUserDto: CreateUserDto): Promise<User> {
     const user = this.usersRepository.create(createUserDto);
@@ -44,7 +43,7 @@ export class UsersService {
   async findOneByEmail(email: string): Promise<User | undefined> {
     return this.usersRepository.findOne({
       where: { email },
-      select: ['id', 'name', 'email', 'password', 'deletedAt', 'emailConfirmed'], // emailConfirmed alanını da sorgulamaya dahil edin
+      select: ['id', 'name', 'email', 'password', 'deletedAt', 'emailConfirmed'],
       relations: ['roles'],
       withDeleted: true,
     });

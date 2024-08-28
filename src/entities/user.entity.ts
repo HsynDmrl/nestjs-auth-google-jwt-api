@@ -16,7 +16,7 @@ export class User extends BaseEntity {
   @Column({ unique: true, length: 100 })
   email: string;
 
-  @Column({ select: false, nullable: true })
+  @Column({ nullable: true })
   password: string;
 
   @ManyToMany(() => Role)
