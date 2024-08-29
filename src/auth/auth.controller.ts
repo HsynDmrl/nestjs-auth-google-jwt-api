@@ -4,6 +4,8 @@ import { CreateUserDto } from 'src/users/dto/create-user.dto/create-user.dto';
 import { LocalAuthGuard } from './guards/local-auth/local-auth.guard';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth-guard/jwt-auth.guard';
+import { Permissions } from 'src/auth/decorators/permissions/permissions.decorator';
+import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -21,6 +23,8 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('user_refresh_token')
   async refreshTokens(
     @Body('refreshToken') refreshToken: string,
     @Body('userId') userId: string,
@@ -35,7 +39,8 @@ export class AuthController {
   }
 
   @Post('change-password')
-  @UseGuards(JwtAuthGuard) // Kullanıcının giriş yapmış olması gerektiği için JWT guard kullanıyoruz
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('user_change_password')
   async changePassword(@Req() req, @Body() changePasswordDto: ChangePasswordDto) {
     const userId = req.user.id;
     return this.authService.changePassword(userId, changePasswordDto);

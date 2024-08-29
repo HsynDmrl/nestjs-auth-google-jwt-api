@@ -12,7 +12,7 @@ export class AdminRolesController {
 
   // Tüm aktif rolleri getirir
   @Get('active')
-  @Permissions('read')
+  @Permissions('admin_read_roles')
   findAll(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
@@ -22,7 +22,7 @@ export class AdminRolesController {
 
   // Tüm pasif rolleri getirir
   @Get('inactive')
-  @Permissions('read', 'create') // Bu endpoint'e sadece 'read' ve 'create' yetkisine sahip kullanıcılar erişebilir
+  @Permissions('admin_read_roles')
   findAllInactive(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
@@ -32,7 +32,7 @@ export class AdminRolesController {
 
   // Silinmiş roller de dahil olmak üzere tüm rolleri getirir
   @Get('getAll')
-  //@Permissions('read')
+  @Permissions('admin_read_roles')
   findAllIncludingDeleted(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
@@ -42,42 +42,42 @@ export class AdminRolesController {
 
   // Belirli bir rolü getirir
   @Get('getById/:id')
-  @Permissions('read')
+  @Permissions('admin_read_roles')
   findOne(@Param('id') id: string): Promise<Role> {
     return this.adminRolesService.findOne(id);
   }
 
   // Yeni bir rol oluşturur
   @Post('add')
-  @Permissions('create') // Sadece 'create' yetkisine sahip kullanıcılar rol oluşturabilir
+  @Permissions('admin_create_role')
   create(@Body() role: Role): Promise<Role> {
     return this.adminRolesService.create(role);
   }
 
   // Belirli bir rolü günceller
   @Put('update/:id')
-  @Permissions('update') // Sadece 'update' yetkisine sahip kullanıcılar rol güncelleyebilir
+  @Permissions('admin_edit_role')
   update(@Param('id') id: string, @Body() role: Role): Promise<Role> {
     return this.adminRolesService.update(id, role);
   }
 
   // Belirli bir rolü pasif yapar (soft delete)
   @Delete('soft/:id')
-  @Permissions('delete') // Sadece 'delete' yetkisine sahip kullanıcılar rolü pasif yapabilir
+  @Permissions('admin_delete_role')
   softRemove(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminRolesService.softRemove(id);
   }
 
   // Belirli bir rolü geri yükler
   @Put('restore/:id')
-  @Permissions('create') // Sadece 'create' yetkisine sahip kullanıcılar rolü geri yükleyebilir
+  @Permissions('admin_create_role')
   restore(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminRolesService.restore(id);
   }
 
   // Belirli bir rolü kalıcı olarak siler (hard delete)
   @Delete('hard/:id')
-  @Permissions('delete') // Sadece 'delete' yetkisine sahip kullanıcılar rolü kalıcı olarak silebilir
+  @Permissions('admin_delete_role')
   remove(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminRolesService.remove(id);
   }
