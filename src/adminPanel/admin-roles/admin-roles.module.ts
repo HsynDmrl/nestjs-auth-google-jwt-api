@@ -7,10 +7,12 @@ import { PermissionsModule } from '../permissions/permissions.module';
 import { User } from 'src/entities/user.entity';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { Reflector } from '@nestjs/core';
+import { AuditLogModule } from 'src/audit-log/audit-log.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Role, User]), 
+    AuditLogModule,
     PermissionsModule,
   ],
   controllers: [AdminRolesController],

@@ -1,9 +1,10 @@
-import { Controller, Get, Query, Post, Body, Param, Delete, Put, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Post, Body, Param, Delete, Put, UseGuards, UseInterceptors } from '@nestjs/common';
 import { AdminRolesService } from './admin-roles.service';
 import { Role } from 'src/entities/role.entity';
 import { Permissions } from 'src/auth/decorators/permissions/permissions.decorator';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth-guard/jwt-auth.guard';
+import { AuditLogInterceptor } from 'src/audit-log/audit-log.interceptor';
 
 @Controller('admin/roles')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -49,6 +50,7 @@ export class AdminRolesController {
 
   // Yeni bir rol oluşturur
   @Post('add')
+  @UseInterceptors(AuditLogInterceptor)
   @Permissions('admin_create_role')
   create(@Body() role: Role): Promise<Role> {
     return this.adminRolesService.create(role);
@@ -57,6 +59,7 @@ export class AdminRolesController {
   // Belirli bir rolü günceller
   @Put('update/:id')
   @Permissions('admin_edit_role')
+  @UseInterceptors(AuditLogInterceptor)
   update(@Param('id') id: string, @Body() role: Role): Promise<Role> {
     return this.adminRolesService.update(id, role);
   }
@@ -64,6 +67,7 @@ export class AdminRolesController {
   // Belirli bir rolü pasif yapar (soft delete)
   @Delete('soft/:id')
   @Permissions('admin_delete_role')
+  @UseInterceptors(AuditLogInterceptor)
   softRemove(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminRolesService.softRemove(id);
   }
@@ -71,6 +75,7 @@ export class AdminRolesController {
   // Belirli bir rolü geri yükler
   @Put('restore/:id')
   @Permissions('admin_create_role')
+  @UseInterceptors(AuditLogInterceptor)
   restore(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminRolesService.restore(id);
   }
@@ -78,6 +83,7 @@ export class AdminRolesController {
   // Belirli bir rolü kalıcı olarak siler (hard delete)
   @Delete('hard/:id')
   @Permissions('admin_delete_role')
+  @UseInterceptors(AuditLogInterceptor)
   remove(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminRolesService.remove(id);
   }

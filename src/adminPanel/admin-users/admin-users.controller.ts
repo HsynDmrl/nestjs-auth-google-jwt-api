@@ -1,9 +1,10 @@
-import { Controller, Get, Query, Post, Body, Param, Delete, Put, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Post, Body, Param, Delete, Put, UseGuards, UseInterceptors } from '@nestjs/common';
 import { AdminUsersService } from './admin-users.service';
 import { User } from 'src/entities/user.entity';
 import { Permissions } from 'src/auth/decorators/permissions/permissions.decorator';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth-guard/jwt-auth.guard';
+import { AuditLogInterceptor } from 'src/audit-log/audit-log.interceptor';
 
 @Controller('admin/users')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -50,6 +51,7 @@ export class AdminUsersController {
   // Yeni bir kullanıcı oluşturur
   @Post('add')
   @Permissions('admin_create_user')
+  @UseInterceptors(AuditLogInterceptor)
   create(@Body() userDto: { user: User, roleIds: string[] }): Promise<User> {
     const { user, roleIds } = userDto;
     return this.adminUsersService.create(user, roleIds);
@@ -58,6 +60,7 @@ export class AdminUsersController {
   // Belirli bir kullanıcıyı günceller
   @Put('update/:id')
   @Permissions('admin_edit_user')
+  @UseInterceptors(AuditLogInterceptor)
   update(@Param('id') id: string, @Body() userDto: { user: User, roleIds: string[] }): Promise<User> {
     const { user, roleIds } = userDto;
     return this.adminUsersService.update(id, user, roleIds);
@@ -66,6 +69,7 @@ export class AdminUsersController {
   // Belirli bir kullanıcıyı pasif yapar (soft delete)
   @Delete('soft/:id')
   @Permissions('admin_delete_user')
+  @UseInterceptors(AuditLogInterceptor)
   async softRemove(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminUsersService.softRemove(id);
   }
@@ -73,6 +77,7 @@ export class AdminUsersController {
   // Belirli bir kullanıcıyı geri yükler
   @Put('restore/:id')
   @Permissions('admin_create_user')
+  @UseInterceptors(AuditLogInterceptor)
   async restore(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminUsersService.restore(id);
   }
@@ -80,6 +85,7 @@ export class AdminUsersController {
   // Belirli bir kullanıcıyı kalıcı olarak siler (hard delete)
   @Delete('hard/:id')
   @Permissions('admin_delete_user')
+  @UseInterceptors(AuditLogInterceptor)
   async remove(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminUsersService.remove(id);
   }

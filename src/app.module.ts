@@ -1,3 +1,4 @@
+// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
@@ -8,9 +9,8 @@ import { AdminUsersModule } from './adminPanel/admin-users/admin-users.module';
 import { AuthModule } from './auth/auth.module';
 import { AdminRolesModule } from './adminPanel/admin-roles/admin-roles.module';
 import { SeedModule } from './seed/seed.module';
-import { PermissionsService } from './adminPanel/permissions/permissions.service';
-import { PermissionsController } from './adminPanel/permissions/permissions.controller';
 import { PermissionsModule } from './adminPanel/permissions/permissions.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -24,8 +24,9 @@ import { PermissionsModule } from './adminPanel/permissions/permissions.module';
     AdminRolesModule,
     SeedModule,
     PermissionsModule,
+    AuditLogModule,
   ],
-  controllers: [AppController, PermissionsController],
-  providers: [AppService, PermissionsService],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

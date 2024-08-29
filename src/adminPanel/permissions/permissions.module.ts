@@ -5,9 +5,11 @@ import { PermissionsController } from './permissions.controller';
 import { Permission } from 'src/entities/permission.entity';
 import { UsersModule } from 'src/users/users.module';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import { AuditLogModule } from 'src/audit-log/audit-log.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Permission]), UsersModule],
+  imports: [TypeOrmModule.forFeature([Permission]), 
+  AuditLogModule,UsersModule],
   providers: [PermissionsService, PermissionsGuard],
   controllers: [PermissionsController],
   exports: [TypeOrmModule, PermissionsGuard],

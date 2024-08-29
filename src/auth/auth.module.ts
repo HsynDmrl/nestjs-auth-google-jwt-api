@@ -17,6 +17,7 @@ import { PasswordReset } from 'src/entities/password-reset.entity';
 import { PasswordResetService } from './password-reset/password-reset.service';
 import { GoogleAuthController } from './google-auth/google-auth.controller';
 import { GoogleStrategy } from './strategies/google.strategy/google.strategy';
+import { AuditLogModule } from 'src/audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { GoogleStrategy } from './strategies/google.strategy/google.strategy';
     TypeOrmModule.forFeature([Role, RefreshToken, PasswordReset]),
     RefreshTokenModule,
     EmailConfirmationModule,
+    AuditLogModule,
   ],
   providers: [AuthService, LocalStrategy, JwtStrategy, GoogleStrategy, EmailService, PasswordResetService],
   controllers: [AuthController, GoogleAuthController],
