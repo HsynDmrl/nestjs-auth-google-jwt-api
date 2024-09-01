@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class EmailService {
@@ -7,25 +9,40 @@ export class EmailService {
 
   constructor() {
     this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST, // Örneğin: smtp.gmail.com
-      port: parseInt(process.env.EMAIL_PORT, 10), // Örneğin: 587
-      secure: false, // true for 465, false for other ports
+      host: process.env.EMAIL_HOST, 
+      port: parseInt(process.env.EMAIL_PORT, 10),
+      secure: false,
       auth: {
-        user: process.env.EMAIL_USER, // E-posta kullanıcı adı
-        pass: process.env.EMAIL_PASS, // E-posta şifresi
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
     });
   }
 
-  async sendEmail(to: string, subject: string, text: string, html: string): Promise<void> {
+  async sendEmail(to: string, subject: string, templateName: string, templateData: any): Promise<void> {
+    // Dosya yolunu belirleyin
+    const templatePath = path.join(process.cwd(), 'src', 'template', 'HTML', `${templateName}.html`);
+    console.log('Template Path:', templatePath); // Dosya yolunu kontrol etmek için log ekleyin
+
+    // Şablon dosyasını oku
+    let htmlContent = fs.readFileSync(templatePath, 'utf8');
+
+    // Placeholder'ları veriyle değiştir
+    Object.keys(templateData).forEach(key => {
+        const placeholder = `{{${key}}}`;
+        htmlContent = htmlContent.replace(new RegExp(placeholder, 'g'), templateData[key]);
+    });
+
+    // E-posta gönderme işlemi
     const info = await this.transporter.sendMail({
-      from: `"Your App" <${process.env.EMAIL_USER}>`, // Gönderen adresi
-      to, // Alıcı adresi
-      subject, // E-posta konusu
-      text, // E-posta içeriği (düz metin)
-      html, // E-posta içeriği (HTML)
+        from: `"Your App" <${process.env.EMAIL_USER}>`,
+        to,
+        subject,
+        html: htmlContent,
     });
 
     console.log('Message sent: %s', info.messageId);
-  }
+}
+
+
 }
