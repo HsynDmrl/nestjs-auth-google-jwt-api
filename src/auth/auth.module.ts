@@ -19,6 +19,7 @@ import { GoogleAuthController } from './google-auth/google-auth.controller';
 import { GoogleStrategy } from './strategies/google.strategy/google.strategy';
 import { AuditLogModule } from 'src/audit-log/audit-log.module';
 import { FailedLoginAttemptModule } from 'src/failed-login-attempt/failed-login-attempt.module';
+import { CaptchaModule } from 'src/captcha/captcha.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { FailedLoginAttemptModule } from 'src/failed-login-attempt/failed-login-
     EmailConfirmationModule,
     AuditLogModule,
     FailedLoginAttemptModule,
+    CaptchaModule, 
   ],
   providers: [AuthService, LocalStrategy, JwtStrategy, GoogleStrategy, EmailService, PasswordResetService],
   controllers: [AuthController, GoogleAuthController],

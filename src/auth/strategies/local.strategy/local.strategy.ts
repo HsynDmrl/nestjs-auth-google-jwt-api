@@ -15,7 +15,8 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
 
   async validate(req: any, email: string, password: string): Promise<any> {
     const ipAddress = requestIp.getClientIp(req); // IP adresini alıyoruz
-    const user = await this.authService.validateUser(email, password, ipAddress);
+    const captchaInput = req.body.captchaInput; // CAPTCHA inputunu alıyoruz
+    const user = await this.authService.validateUser(email, password, ipAddress, captchaInput);
     if (!user) {
       throw new UnauthorizedException();
     }

@@ -14,4 +14,7 @@ export class FailedLoginAttempt extends BaseEntity {
 
   @Column({ type: 'timestamp', nullable: true })
   lockedUntil: Date | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  captchaText: string | null;  // Captcha doğrulama metni
 }

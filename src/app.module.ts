@@ -1,5 +1,4 @@
-// src/app.module.ts
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { AppController } from './app.controller';
@@ -11,6 +10,9 @@ import { AdminRolesModule } from './adminPanel/admin-roles/admin-roles.module';
 import { SeedModule } from './seed/seed.module';
 import { PermissionsModule } from './adminPanel/permissions/permissions.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
+import { CaptchaModule } from './captcha/captcha.module';
+
+import * as session from 'express-session';
 
 @Module({
   imports: [
@@ -25,8 +27,22 @@ import { AuditLogModule } from './audit-log/audit-log.module';
     SeedModule,
     PermissionsModule,
     AuditLogModule,
+    CaptchaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(
+        session({
+          secret: process.env.SECRET_KEY,
+          resave: false,
+          saveUninitialized: false,
+          cookie: { maxAge: 3600000 }, // 1 saatlik oturum süresi
+        }),
+      )
+      .forRoutes('*')
+  }
+}

@@ -14,6 +14,7 @@ import { PasswordResetService } from './password-reset/password-reset.service';
 import { AuditLogService } from 'src/audit-log/audit-log.service';
 import { AuditLogType } from 'src/entities/audit-log.entity';
 import { FailedLoginAttemptService } from 'src/failed-login-attempt/failed-login-attempt.service';
+import { CaptchaService } from 'src/captcha/captcha.service';
 
 @Injectable()
 export class AuthService {
@@ -26,46 +27,81 @@ export class AuthService {
     private passwordResetService: PasswordResetService,
     private auditLogService: AuditLogService,
     private failedLoginAttemptService: FailedLoginAttemptService,
+    private captchaService: CaptchaService,
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
   ) { }
 
-  async validateUser(email: string, pass: string, ipAddress: string): Promise<any> {
+  async validateUser(email: string, pass: string, ipAddress: string, captchaInput?: string): Promise<any> {
     // Rate Limiting ve engelleme durumu kontrolü
-    await this.failedLoginAttemptService.countFailedAttempts(email, ipAddress);
+    const attempt = await this.failedLoginAttemptService.countFailedAttempts(email, ipAddress);
+
+    // Oturumda saklanan veriyi kontrol edelim
+    console.log('Oturumdaki attempt:', attempt);
+
+    // 3 veya daha fazla başarısız giriş denemesi olduysa, Captcha zorunlu kıl
+    if (attempt && attempt.attemptCount >= 3) {
+        console.log('Captcha gerekli. Kullanıcıdan alınan captchaInput:', captchaInput);
+        if (!captchaInput) {
+            console.log('CAPTCHA gereklidir, ancak giriş sağlanmadı.');
+            throw new HttpException('Captcha gereklidir', HttpStatus.BAD_REQUEST);
+        }
+        
+        console.log('Oturumdaki captchaText:', attempt.captchaText);
+        const captchaIsValid = this.captchaService.verifyCaptcha(captchaInput, attempt.captchaText);
+        if (!captchaIsValid) {
+            console.log('CAPTCHA doğrulaması başarısız oldu.');
+            throw new HttpException('Captcha doğrulaması başarısız oldu.', HttpStatus.BAD_REQUEST);
+        }
+    }
 
     const user = await this.usersService.findOneByEmail(email);
 
     // Kullanıcı bulunamazsa veya soft delete yapılmışsa
     if (!user || user.deletedAt) {
-      if (user) {
-        await this.auditLogService.logFailedLogin(user, ipAddress);
-        await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress);
-      }
-      throw new HttpException('Kullanıcı pasif durumda veya bulunamadı', HttpStatus.UNAUTHORIZED);
+        if (user) {
+            await this.auditLogService.logFailedLogin(user, ipAddress);
+            await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress);
+        }
+        throw new HttpException('Kullanıcı pasif durumda veya bulunamadı', HttpStatus.UNAUTHORIZED);
     }
 
     // E-posta doğrulanmamışsa
     if (!user.emailConfirmed) {
-      await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress); // Başarısız giriş denemesi kaydediliyor
-      await this.auditLogService.logFailedLogin(user, ipAddress); // Başarısız giriş denemesi kaydediliyor
-      throw new HttpException('E-posta doğrulanmamış', HttpStatus.FORBIDDEN);
+        await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress); // Başarısız giriş denemesi kaydediliyor
+        await this.auditLogService.logFailedLogin(user, ipAddress); // Başarısız giriş denemesi kaydediliyor
+        throw new HttpException('E-posta doğrulanmamış', HttpStatus.FORBIDDEN);
     }
 
     // Şifre yanlışsa
     const isPasswordMatching = await bcrypt.compare(pass, user.password);
     if (!isPasswordMatching) {
-      await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress); // Başarısız giriş denemesi kaydediliyor
-      await this.auditLogService.logFailedLogin(user, ipAddress); // Başarısız giriş denemesi kaydediliyor
-      throw new HttpException('Geçersiz kimlik bilgileri', HttpStatus.UNAUTHORIZED);
+        await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress); // Başarısız giriş denemesi kaydediliyor
+        await this.auditLogService.logFailedLogin(user, ipAddress); // Başarısız giriş denemesi kaydediliyor
+        throw new HttpException('Geçersiz kimlik bilgileri', HttpStatus.UNAUTHORIZED);
     }
 
     // Giriş başarılı, başarısız denemeleri temizliyoruz
     await this.failedLoginAttemptService.clearFailedAttempts(email, ipAddress);
 
-    const { password, ...result } = user;
-    return result;
+    // Access token ve refresh token oluştur
+    const payload = { id: user.id, email: user.email, roles: user.roles };
+    const accessToken = this.jwtService.sign(payload);
+
+    const refreshToken = await this.refreshTokenService.generateRefreshToken(user);
+
+    return {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        roles: user.roles,
+      },
+      accessToken,
+      refreshToken: refreshToken.token,
+    };
 }
+
 
 
 
