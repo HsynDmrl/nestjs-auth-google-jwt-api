@@ -72,17 +72,20 @@ export class AuditLogService {
   }
 
   // Başarısız giriş denemesini kaydetme
-  async logFailedLogin(user: User): Promise<UserActivity> {
+  async logFailedLogin(user: User, ipAddress: string): Promise<UserActivity> {
+    const geo = geoip.lookup(ipAddress); // GeoIP ile ülke ve şehir bilgilerini al
+
     const failedLogin = this.userActivityRepository.create({
       action: 'FAILED_LOGIN',
-      ipAddress: '', // Boş bırakıyoruz
-      country: '', // Boş bırakıyoruz
-      city: '', // Boş bırakıyoruz
+      ipAddress: ipAddress || 'Unknown', // IP adresini kaydet
+      country: geo?.country || 'Unknown', // Ülke bilgisi
+      city: geo?.city || 'Unknown', // Şehir bilgisi
       type: AuditLogType.FAILURE, // Başarısızlık türü
       user,
     });
 
     // createdAt otomatik olarak kaydedilecektir
     return this.userActivityRepository.save(failedLogin);
-  }
+}
+
 }

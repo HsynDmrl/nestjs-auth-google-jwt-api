@@ -34,7 +34,7 @@ export class AuthService {
     // Rate Limiting kontrolü
     const failedAttempts = await this.failedLoginAttemptService.countFailedAttempts(email, ipAddress);
     if (failedAttempts >= 5) {
-      throw new HttpException('Çok fazla başarısız giriş denemesi. Lütfen 15dk sonra tekrar deneyin.', HttpStatus.TOO_MANY_REQUESTS);
+      throw new HttpException('Çok fazla başarısız giriş denemesi. Lütfen bir süre sonra tekrar deneyin.', HttpStatus.TOO_MANY_REQUESTS);
     }
 
     const user = await this.usersService.findOneByEmail(email);
@@ -42,7 +42,8 @@ export class AuthService {
     // Kullanıcı bulunamazsa veya soft delete yapılmışsa
     if (!user || user.deletedAt) {
       if (user) {
-        await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress); // Başarısız giriş denemesi kaydediliyor
+        await this.auditLogService.logFailedLogin(user, ipAddress);
+        await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress);
       }
       throw new HttpException('Kullanıcı pasif durumda veya bulunamadı', HttpStatus.UNAUTHORIZED);
     }
@@ -50,6 +51,7 @@ export class AuthService {
     // E-posta doğrulanmamışsa
     if (!user.emailConfirmed) {
       await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress); // Başarısız giriş denemesi kaydediliyor
+      await this.auditLogService.logFailedLogin(user, ipAddress); // Başarısız giriş denemesi kaydediliyor
       throw new HttpException('E-posta doğrulanmamış', HttpStatus.FORBIDDEN);
     }
 
@@ -57,6 +59,7 @@ export class AuthService {
     const isPasswordMatching = await bcrypt.compare(pass, user.password);
     if (!isPasswordMatching) {
       await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress); // Başarısız giriş denemesi kaydediliyor
+      await this.auditLogService.logFailedLogin(user, ipAddress); // Başarısız giriş denemesi kaydediliyor
       throw new HttpException('Geçersiz kimlik bilgileri', HttpStatus.UNAUTHORIZED);
     }
 
@@ -66,7 +69,6 @@ export class AuthService {
     const { password, ...result } = user;
     return result;
 }
-
 
 
 
