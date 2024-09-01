@@ -13,6 +13,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { PasswordResetService } from './password-reset/password-reset.service';
 import { AuditLogService } from 'src/audit-log/audit-log.service';
 import { AuditLogType } from 'src/entities/audit-log.entity';
+import { FailedLoginAttemptService } from 'src/failed-login-attempt/failed-login-attempt.service';
 
 @Injectable()
 export class AuthService {
@@ -24,38 +25,50 @@ export class AuthService {
     private emailService: EmailService,
     private passwordResetService: PasswordResetService,
     private auditLogService: AuditLogService,
+    private failedLoginAttemptService: FailedLoginAttemptService,
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
   ) { }
 
-  async validateUser(email: string, pass: string): Promise<any> {
+  async validateUser(email: string, pass: string, ipAddress: string): Promise<any> {
+    // Rate Limiting kontrolü
+    const failedAttempts = await this.failedLoginAttemptService.countFailedAttempts(email, ipAddress);
+    if (failedAttempts >= 5) {
+      throw new HttpException('Çok fazla başarısız giriş denemesi. Lütfen 15dk sonra tekrar deneyin.', HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     const user = await this.usersService.findOneByEmail(email);
 
     // Kullanıcı bulunamazsa veya soft delete yapılmışsa
     if (!user || user.deletedAt) {
       if (user) {
-        await this.auditLogService.logFailedLogin(user); // Başarısız giriş denemesi kaydediliyor
+        await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress); // Başarısız giriş denemesi kaydediliyor
       }
       throw new HttpException('Kullanıcı pasif durumda veya bulunamadı', HttpStatus.UNAUTHORIZED);
     }
 
     // E-posta doğrulanmamışsa
     if (!user.emailConfirmed) {
-      await this.auditLogService.logFailedLogin(user); // Başarısız giriş denemesi kaydediliyor
+      await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress); // Başarısız giriş denemesi kaydediliyor
       throw new HttpException('E-posta doğrulanmamış', HttpStatus.FORBIDDEN);
     }
 
     // Şifre yanlışsa
     const isPasswordMatching = await bcrypt.compare(pass, user.password);
     if (!isPasswordMatching) {
-      await this.auditLogService.logFailedLogin(user); // Başarısız giriş denemesi kaydediliyor
+      await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress); // Başarısız giriş denemesi kaydediliyor
       throw new HttpException('Geçersiz kimlik bilgileri', HttpStatus.UNAUTHORIZED);
     }
 
-    // Giriş başarılı, şifreyi dışarıda bırakarak kullanıcıyı döndür
+    // Giriş başarılı, başarısız denemeleri temizliyoruz
+    await this.failedLoginAttemptService.clearFailedAttempts(email, ipAddress);
+
     const { password, ...result } = user;
     return result;
-  }
+}
+
+
+
 
   async register(createUserDto: CreateUserDto): Promise<any> {
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
@@ -101,14 +114,14 @@ export class AuthService {
 
     const refreshToken = await this.refreshTokenService.generateRefreshToken(user);
 
-    // Kullanıcı aktivitesini loglama
+    // Kullanıcı aktivitesini loglama (IP adresi burada loglanıyor)
     await this.auditLogService.logUserActivity(user, request, AuditLogType.SUCCESS);
 
     return {
       accessToken,
       refreshToken: refreshToken.token,
     };
-  }
+}
 
   async refreshTokens(refreshToken: string, userId: string, accessToken: string, request: any = null): Promise<any> {
     // Refresh token'ı doğrula

@@ -18,6 +18,7 @@ import { PasswordResetService } from './password-reset/password-reset.service';
 import { GoogleAuthController } from './google-auth/google-auth.controller';
 import { GoogleStrategy } from './strategies/google.strategy/google.strategy';
 import { AuditLogModule } from 'src/audit-log/audit-log.module';
+import { FailedLoginAttemptModule } from 'src/failed-login-attempt/failed-login-attempt.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { AuditLogModule } from 'src/audit-log/audit-log.module';
     RefreshTokenModule,
     EmailConfirmationModule,
     AuditLogModule,
+    FailedLoginAttemptModule,
   ],
   providers: [AuthService, LocalStrategy, JwtStrategy, GoogleStrategy, EmailService, PasswordResetService],
   controllers: [AuthController, GoogleAuthController],
