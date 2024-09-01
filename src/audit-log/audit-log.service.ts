@@ -71,4 +71,18 @@ export class AuditLogService {
     });
   }
 
+  // Başarısız giriş denemesini kaydetme
+  async logFailedLogin(user: User): Promise<UserActivity> {
+    const failedLogin = this.userActivityRepository.create({
+      action: 'FAILED_LOGIN',
+      ipAddress: '', // Boş bırakıyoruz
+      country: '', // Boş bırakıyoruz
+      city: '', // Boş bırakıyoruz
+      type: AuditLogType.FAILURE, // Başarısızlık türü
+      user,
+    });
+
+    // createdAt otomatik olarak kaydedilecektir
+    return this.userActivityRepository.save(failedLogin);
+  }
 }

@@ -1,6 +1,4 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-import * as requestIp from 'request-ip';
-import * as geoip from 'geoip-lite';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
@@ -15,7 +13,6 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { PasswordResetService } from './password-reset/password-reset.service';
 import { AuditLogService } from 'src/audit-log/audit-log.service';
 import { AuditLogType } from 'src/entities/audit-log.entity';
-
 
 @Injectable()
 export class AuthService {
@@ -33,24 +30,32 @@ export class AuthService {
 
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.usersService.findOneByEmail(email);
-  
+
+    // Kullanıcı bulunamazsa veya soft delete yapılmışsa
     if (!user || user.deletedAt) {
-      throw new HttpException('User is inactive or not found', HttpStatus.UNAUTHORIZED);
+      if (user) {
+        await this.auditLogService.logFailedLogin(user); // Başarısız giriş denemesi kaydediliyor
+      }
+      throw new HttpException('Kullanıcı pasif durumda veya bulunamadı', HttpStatus.UNAUTHORIZED);
     }
-  
+
+    // E-posta doğrulanmamışsa
     if (!user.emailConfirmed) {
-      throw new HttpException('Email not confirmed', HttpStatus.FORBIDDEN); // Eğer e-posta doğrulanmamışsa hata fırlat
+      await this.auditLogService.logFailedLogin(user); // Başarısız giriş denemesi kaydediliyor
+      throw new HttpException('E-posta doğrulanmamış', HttpStatus.FORBIDDEN);
     }
-  
+
+    // Şifre yanlışsa
     const isPasswordMatching = await bcrypt.compare(pass, user.password);
     if (!isPasswordMatching) {
-      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+      await this.auditLogService.logFailedLogin(user); // Başarısız giriş denemesi kaydediliyor
+      throw new HttpException('Geçersiz kimlik bilgileri', HttpStatus.UNAUTHORIZED);
     }
-  
+
+    // Giriş başarılı, şifreyi dışarıda bırakarak kullanıcıyı döndür
     const { password, ...result } = user;
     return result;
   }
-
 
   async register(createUserDto: CreateUserDto): Promise<any> {
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
@@ -72,15 +77,13 @@ export class AuthService {
     // E-posta gönderme işlemi
     await this.emailService.sendEmail(
       savedUser.email,
-      'Confirm your email',
+      'E-postanızı doğrulayın',
       'welcome-message', // Şablon adını buraya ekleyin
       { username: savedUser.name, confirmationUrl: confirmationUrl }
     );
 
-    return { message: 'User registered. Please confirm your email.' };
+    return { message: 'Kullanıcı kaydedildi. Lütfen e-postanızı doğrulayın.' };
   }
-
-
 
   async confirmEmail(token: string): Promise<any> {
     const user = await this.emailConfirmationService.confirmEmail(token);
@@ -89,40 +92,37 @@ export class AuthService {
     user.emailConfirmed = true;
     await this.usersService.save(user);  // Burada save işlemi yapılıyor olmalı
 
-    return { message: 'Email confirmed successfully. You can now log in.' };
+    return { message: 'E-posta başarıyla doğrulandı. Artık giriş yapabilirsiniz.' };
   }
-
 
   async login(user: any, request: any) {
     const payload = { id: user.id, email: user.email, roles: user.roles };
     const accessToken = this.jwtService.sign(payload);
-  
+
     const refreshToken = await this.refreshTokenService.generateRefreshToken(user);
 
     // Kullanıcı aktivitesini loglama
     await this.auditLogService.logUserActivity(user, request, AuditLogType.SUCCESS);
-  
+
     return {
       accessToken,
       refreshToken: refreshToken.token,
     };
   }
 
-
-
   async refreshTokens(refreshToken: string, userId: string, accessToken: string, request: any = null): Promise<any> {
     // Refresh token'ı doğrula
     const validRefreshToken = await this.refreshTokenService.validateRefreshToken(refreshToken);
 
     if (!validRefreshToken || validRefreshToken.user.id !== userId) {
-      throw new HttpException('Invalid refresh token', HttpStatus.UNAUTHORIZED);
+      throw new HttpException('Geçersiz refresh token', HttpStatus.UNAUTHORIZED);
     }
 
     // Access token'ı doğrula
     try {
       this.jwtService.verify(accessToken, { ignoreExpiration: true });
     } catch (error) {
-      throw new HttpException('Invalid access token', HttpStatus.UNAUTHORIZED);
+      throw new HttpException('Geçersiz access token', HttpStatus.UNAUTHORIZED);
     }
 
     const user = validRefreshToken.user;
@@ -133,8 +133,6 @@ export class AuthService {
     // Yeni access ve refresh token döndür, request null olarak geçiliyor
     return this.login(user, request);
   }
-
-
 
   async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<any> {
     const user = await this.usersService.findOneById(userId);
@@ -157,13 +155,12 @@ export class AuthService {
     await this.emailService.sendEmail(
       user.email,
       'Şifre Değişikliği Bildirimi',
-      'password-changed', // Şablon adını buraya ekledik
-      { username: user.name } // Şablon içine dinamik verileri ekledik
+      'password-changed',
+      { username: user.name }
     );
 
     return { message: 'Şifre başarıyla değiştirildi' };
   }
-
 
   async forgotPassword(email: string): Promise<any> {
     const user = await this.usersService.findOneByEmail(email);
@@ -181,8 +178,8 @@ export class AuthService {
     await this.emailService.sendEmail(
       user.email,
       'Şifre Sıfırlama Talebi',
-      'forgot-password', // Şablon adını buraya ekledik
-      { username: user.name, resetUrl: resetUrl } // Şablon içine dinamik verileri ekledik
+      'forgot-password',
+      { username: user.name, resetUrl: resetUrl }
     );
 
     return { message: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi' };
@@ -195,7 +192,7 @@ export class AuthService {
 
     const passwordReset = await this.passwordResetService.validateResetToken(token);
 
-    if (!passwordReset || !passwordReset.user) {
+    if (!passwordReset || passwordReset.user === null) {
       throw new HttpException('Geçersiz şifre sıfırlama tokenı veya kullanıcı bulunamadı', HttpStatus.BAD_REQUEST);
     }
 
@@ -209,24 +206,23 @@ export class AuthService {
     await this.emailService.sendEmail(
       passwordReset.user.email,
       'Şifre Sıfırlama Onayı',
-      'password-reset-confirmation', // Şablon adını buraya ekledik
-      { username: passwordReset.user.name } // Şablon içine dinamik verileri ekledik
+      'password-reset-confirmation',
+      { username: passwordReset.user.name }
     );
 
     return { message: 'Şifre sıfırlama başarılı' };
   }
 
-
   async googleLogin(req) {
     if (!req.user || !req.user.email) {
-      throw new HttpException('Google login failed, email is required', HttpStatus.BAD_REQUEST);
+      throw new HttpException('Google ile giriş başarısız oldu, e-posta gerekli', HttpStatus.BAD_REQUEST);
     }
 
     let user = await this.usersService.findOneByEmail(req.user.email);
 
     // Kullanıcı soft delete yapılmışsa
     if (user && user.deletedAt) {
-      throw new HttpException('User is inactive or not found', HttpStatus.UNAUTHORIZED);
+      throw new HttpException('Kullanıcı pasif durumda veya bulunamadı', HttpStatus.UNAUTHORIZED);
     }
 
     if (!user) {
@@ -245,10 +241,9 @@ export class AuthService {
     }
 
     return {
-      message: 'User information from Google',
+      message: 'Google üzerinden kullanıcı bilgileri',
       user,
       accessToken: this.jwtService.sign({ id: user.id, email: user.email }),
     };
   }
-
 }
