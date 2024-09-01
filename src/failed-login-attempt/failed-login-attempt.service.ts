@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FailedLoginAttempt } from 'src/entities/failed-login-attempt.entity';
 import { Repository } from 'typeorm';
+import * as moment from 'moment';
 
 @Injectable()
 export class FailedLoginAttemptService {
@@ -16,29 +17,67 @@ export class FailedLoginAttemptService {
     });
 
     if (attempt) {
-      // Eğer kayıt varsa, deneme sayısını artır
       attempt.attemptCount += 1;
     } else {
-      // Eğer kayıt yoksa, yeni bir giriş oluştur
       attempt = this.failedLoginAttemptRepository.create({
-        email,
-        ipAddress,
-        attemptCount: 1,
+          email,
+          ipAddress,
+          attemptCount: 1,
+          lockedUntil: null,
       });
     }
 
-    await this.failedLoginAttemptRepository.save(attempt);
-  }
+    // Engelleme süresini her 5, 10, 15 ve 20. denemede hesapla ve kaydet
+    attempt.lockedUntil = this.calculateLockoutTime(attempt.attemptCount);
 
-  async countFailedAttempts(email: string, ipAddress: string): Promise<number> {
+    await this.failedLoginAttemptRepository.save(attempt);
+}
+
+  async countFailedAttempts(email: string, ipAddress: string): Promise<void> {
     const attempt = await this.failedLoginAttemptRepository.findOne({
-      where: { email, ipAddress },
+        where: { email, ipAddress },
     });
 
-    return attempt ? attempt.attemptCount : 0;
-  }
+    if (attempt && attempt.lockedUntil && attempt.lockedUntil > new Date()) {
+        const timeRemainingInSeconds = moment(attempt.lockedUntil).diff(moment(), 'seconds');
+        const timeRemainingText = timeRemainingInSeconds > 60 
+            ? `${Math.ceil(timeRemainingInSeconds / 60)} dakika`
+            : `${timeRemainingInSeconds} saniye`;
+
+        throw new HttpException(`Çok fazla başarısız giriş denemesi. Lütfen ${timeRemainingText} sonra tekrar deneyin.`, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    if (attempt && attempt.lockedUntil && attempt.lockedUntil <= new Date()) {
+        attempt.lockedUntil = null;
+        await this.failedLoginAttemptRepository.save(attempt);
+    }
+}
+
 
   async clearFailedAttempts(email: string, ipAddress: string): Promise<void> {
     await this.failedLoginAttemptRepository.delete({ email, ipAddress });
   }
+
+  private calculateLockoutTime(attemptCount: number): Date | null {
+    let lockoutDuration = 0; // dakika cinsinden
+
+    if (attemptCount >= 20) {
+        lockoutDuration = 1440; // 1440 dakika = 24 saat (1 gün)
+    } else if (attemptCount >= 15) {
+        lockoutDuration = 60; // 60 dakika = 1 saat
+    } else if (attemptCount >= 10) {
+        lockoutDuration = 30; // 30 dakika
+    } else if (attemptCount >= 5) {
+        lockoutDuration = 10; // 10 dakika
+    }
+
+    // Sadece 5, 10, 15 ve 20. denemelerde süreyi güncelle
+    if (attemptCount === 5 || attemptCount === 10 || attemptCount === 15 || attemptCount === 20) {
+        return moment().add(lockoutDuration, 'minutes').toDate();
+    }
+
+    return null;
+}
+
+
 }

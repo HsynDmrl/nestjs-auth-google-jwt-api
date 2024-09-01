@@ -31,11 +31,8 @@ export class AuthService {
   ) { }
 
   async validateUser(email: string, pass: string, ipAddress: string): Promise<any> {
-    // Rate Limiting kontrolü
-    const failedAttempts = await this.failedLoginAttemptService.countFailedAttempts(email, ipAddress);
-    if (failedAttempts >= 5) {
-      throw new HttpException('Çok fazla başarısız giriş denemesi. Lütfen bir süre sonra tekrar deneyin.', HttpStatus.TOO_MANY_REQUESTS);
-    }
+    // Rate Limiting ve engelleme durumu kontrolü
+    await this.failedLoginAttemptService.countFailedAttempts(email, ipAddress);
 
     const user = await this.usersService.findOneByEmail(email);
 

@@ -9,6 +9,9 @@ export class FailedLoginAttempt extends BaseEntity {
   @Column()
   email: string;
 
-  @Column({ default: 0 })
+  @Column({ type: 'int', default: 1 })
   attemptCount: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lockedUntil: Date | null;
 }
