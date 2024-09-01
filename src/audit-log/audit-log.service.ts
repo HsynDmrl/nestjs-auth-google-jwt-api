@@ -4,6 +4,8 @@ import { AuditLog, AuditLogType } from 'src/entities/audit-log.entity';
 import { UserActivity } from 'src/entities/user-activity.entity';
 import { User } from 'src/entities/user.entity';
 import { Repository } from 'typeorm';
+import * as requestIp from 'request-ip';
+import * as geoip from 'geoip-lite';
 
 @Injectable()
 export class AuditLogService {
@@ -38,53 +40,35 @@ export class AuditLogService {
     });
     return this.auditLogRepository.save(auditLog);
   }
+  
+  async logUserActivity(user: User, request: any, type: AuditLogType): Promise<UserActivity> {
+    const clientIp = requestIp.getClientIp(request); // IP adresini al
+    const geo = geoip.lookup(clientIp); // GeoIP ile ülke ve şehir bilgilerini al
 
-  async logActivity(
-    user: User,
-    action: string,
-    type: AuditLogType,
-    ipAddress: string,
-    country: string,
-    city: string,
-  ): Promise<UserActivity> {
-    const activity = this.userActivityRepository.create({
-      user,
-      action,
+    const userActivity = this.userActivityRepository.create({
+      action: 'LOGIN',
+      ipAddress: clientIp,
+      country: geo?.country || 'Unknown',
+      city: geo?.city || 'Unknown',
       type,
-      ipAddress,
-      country,
-      city,
+      user,
     });
-    return this.userActivityRepository.save(activity);
+
+    return this.userActivityRepository.save(userActivity);
+  }
+  
+  async findAllUserActivities(): Promise<UserActivity[]> {
+    return this.userActivityRepository.find({ 
+        relations: ['user'] // Kullanıcı ilişkisini dahil et
+    });
+}
+
+
+  async findUserActivitiesByUserId(userId: string): Promise<UserActivity[]> {
+    return this.userActivityRepository.find({
+        where: { user: { id: userId } },  // Sadece JWT'den alınan kimlik kullanılır
+        relations: ['user'],
+    });
   }
 
-  async findLoginLogsByUserId(userId: string): Promise<UserActivity[]> {
-  const logs = await this.userActivityRepository.find({
-    where: {
-      user: {
-        id: userId,
-      },
-      action: 'login',
-    },
-    order: { createdAt: 'DESC' },
-    relations: ['user'],
-  });
-
-  console.log('Login Logs for User ID:', userId, logs); // Sorgunun sonucunu konsola yazdırın
-
-  return logs;
-}
-
-async findActivitiesByUserId(userId: string): Promise<UserActivity[]> {
-  return this.userActivityRepository.find({
-    where: {
-      user: {
-        id: userId,
-      },
-    },
-    order: { createdAt: 'DESC' },
-    relations: ['user'],
-  });
-}
-  
 }

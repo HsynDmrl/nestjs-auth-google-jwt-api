@@ -31,73 +31,25 @@ export class AuthService {
     private readonly roleRepository: Repository<Role>,
   ) { }
 
-  async validateUser(email: string, pass: string, request: any): Promise<any> {
+  async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.usersService.findOneByEmail(email);
-    const ipAddress = requestIp.getClientIp(request) === '::1' ? '127.0.0.1' : requestIp.getClientIp(request);
-
-    if (!request.session) {
-      request.session = {};
+  
+    if (!user || user.deletedAt) {
+      throw new HttpException('User is inactive or not found', HttpStatus.UNAUTHORIZED);
     }
-
-    if (!request.session.loggedIn) {
-      const geo = geoip.lookup(ipAddress) || { country: '', city: '' };
-      const country = geo.country || 'Unknown';
-      const city = geo.city || 'Unknown';
-
-      if (!user || user.deletedAt) {
-        await this.logFailedAttempt(user, ipAddress, country, city, 'User is inactive or not found');
-        throw new HttpException('User is inactive or not found', HttpStatus.UNAUTHORIZED);
-      }
-
-      if (!user.emailConfirmed) {
-        await this.logFailedAttempt(user, ipAddress, country, city, 'Email not confirmed');
-        throw new HttpException('Email not confirmed', HttpStatus.FORBIDDEN);
-      }
-
-      const isPasswordMatching = await bcrypt.compare(pass, user.password);
-      if (!isPasswordMatching) {
-        await this.logFailedAttempt(user, ipAddress, country, city, 'Invalid credentials');
-        throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
-      }
-
-      await this.logSuccessfulAttempt(user, ipAddress, country, city);
-      request.session.loggedIn = true;
+  
+    if (!user.emailConfirmed) {
+      throw new HttpException('Email not confirmed', HttpStatus.FORBIDDEN); // Eğer e-posta doğrulanmamışsa hata fırlat
     }
-
+  
+    const isPasswordMatching = await bcrypt.compare(pass, user.password);
+    if (!isPasswordMatching) {
+      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+    }
+  
     const { password, ...result } = user;
     return result;
   }
-
-  private async logSuccessfulAttempt(user: any, ipAddress: string, country: string, city: string) {
-    ipAddress = ipAddress || '127.0.0.1';  // Null kontrolü
-    console.log('logSuccessfulAttempt - IP:', ipAddress, 'Country:', country, 'City:', city, 'User:', user);
-
-    await this.auditLogService.logActivity(
-      user,
-      'login',
-      AuditLogType.SUCCESS,
-      ipAddress,
-      country,
-      city,
-    );
-  }
-
-
-  private async logFailedAttempt(user: any, ipAddress: string, country: string, city: string, reason: string) {
-    ipAddress = ipAddress || '127.0.0.1';  // Null kontrolü
-    console.log('logFailedAttempt - IP:', ipAddress, 'Country:', country, 'City:', city, 'User:', user);
-
-    await this.auditLogService.logActivity(
-      user,
-      `login_failed: ${reason}`,
-      AuditLogType.FAILURE,
-      ipAddress,
-      country,
-      city,
-    );
-  }
-
-
 
 
   async register(createUserDto: CreateUserDto): Promise<any> {
@@ -141,35 +93,28 @@ export class AuthService {
   }
 
 
-  async login(user: any, ip: string, country: string, city: string) {
-    if (!user.loggedIn) {
-      const payload = { id: user.id, email: user.email, roles: user.roles };
-      const accessToken = this.jwtService.sign(payload);
+  async login(user: any, request: any) {
+    const payload = { id: user.id, email: user.email, roles: user.roles };
+    const accessToken = this.jwtService.sign(payload);
+  
+    const refreshToken = await this.refreshTokenService.generateRefreshToken(user);
 
-      const refreshToken = await this.refreshTokenService.generateRefreshToken(user);
-
-      // Başarılı login loglama
-      await this.logSuccessfulAttempt(user, ip, country, city);
-      user.loggedIn = true;  // Girişin kaydedildiğini işaretleyin
-
-      return {
-        accessToken,
-        refreshToken: refreshToken.token,
-      };
-    } else {
-      throw new HttpException('User already logged in', HttpStatus.BAD_REQUEST);
-    }
+    // Kullanıcı aktivitesini loglama
+    await this.auditLogService.logUserActivity(user, request, AuditLogType.SUCCESS);
+  
+    return {
+      accessToken,
+      refreshToken: refreshToken.token,
+    };
   }
 
 
 
-  async refreshTokens(refreshToken: string, userId: string, accessToken: string, ip: string, country: string, city: string) {
+  async refreshTokens(refreshToken: string, userId: string, accessToken: string, request: any = null): Promise<any> {
     // Refresh token'ı doğrula
     const validRefreshToken = await this.refreshTokenService.validateRefreshToken(refreshToken);
 
     if (!validRefreshToken || validRefreshToken.user.id !== userId) {
-      // Başarısız token yenileme loglama
-      await this.logFailedAttempt(validRefreshToken?.user, ip, country, city, 'Invalid refresh token');
       throw new HttpException('Invalid refresh token', HttpStatus.UNAUTHORIZED);
     }
 
@@ -177,8 +122,6 @@ export class AuthService {
     try {
       this.jwtService.verify(accessToken, { ignoreExpiration: true });
     } catch (error) {
-      // Başarısız token yenileme loglama
-      await this.logFailedAttempt(validRefreshToken.user, ip, country, city, 'Invalid access token');
       throw new HttpException('Invalid access token', HttpStatus.UNAUTHORIZED);
     }
 
@@ -187,11 +130,11 @@ export class AuthService {
     // Refresh token'ı iptal et
     await this.refreshTokenService.revokeRefreshToken(refreshToken);
 
-    // Yeni access ve refresh token döndür
-    await this.logSuccessfulAttempt(user, ip, country, city);
-
-    return this.login(user, ip, country, city);
+    // Yeni access ve refresh token döndür, request null olarak geçiliyor
+    return this.login(user, request);
   }
+
+
 
   async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<any> {
     const user = await this.usersService.findOneById(userId);

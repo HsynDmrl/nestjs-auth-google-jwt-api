@@ -6,8 +6,6 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth-guard/jwt-auth.guard';
 import { Permissions } from 'src/auth/decorators/permissions/permissions.decorator';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
-import { ClientIp } from './decorators/client-ip/client-ip.decorator';
-import * as geoip from 'geoip-lite';
 
 @Controller('auth')
 export class AuthController {
@@ -15,13 +13,8 @@ export class AuthController {
 
   @Post('login')
   @UseGuards(LocalAuthGuard)
-  async login(@Req() req, @ClientIp() ip: string) {
-    // IP adresinden coğrafi bilgileri alıyoruz
-    const geo = geoip.lookup(ip) || { country: 'Unknown', city: 'Unknown' };
-    const country = geo.country || 'Unknown';
-    const city = geo.city || 'Unknown';
-
-    return this.authService.login(req.user, ip, country, city);
+  async login(@Req() req) {
+    return this.authService.login(req.user, req);
   }
 
   @Post('register')
@@ -30,16 +23,14 @@ export class AuthController {
   }
 
   @Post('refresh')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('user_refresh_token')
   async refreshTokens(
     @Body('refreshToken') refreshToken: string,
     @Body('userId') userId: string,
     @Body('accessToken') accessToken: string,
-    @Ip() ip: string,
-    @Headers('x-country') country: string,
-    @Headers('x-city') city: string
   ) {
-    return this.authService.refreshTokens(refreshToken, userId, accessToken, ip, country, city);
+    return this.authService.refreshTokens(refreshToken, userId, accessToken);
   }
 
   @Get('confirm/:token')

@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -42,9 +42,18 @@ export class PermissionsGuard implements CanActivate {
       });
     });
 
+    // İzin kontrolü yapıyoruz
     const hasPermission = requiredPermissions.every(permission => userPermissions.has(permission));
+
     if (!hasPermission) {
-      throw new UnauthorizedException('Bu işlemi gerçekleştirmek için gerekli izinlere sahip değilsiniz.');
+      // Kullanıcının kendi kaydına erişmeye çalışıp çalışmadığını kontrol ediyoruz
+      const resourceUserId = request.params.userId || request.params.id; // userId veya id'yi URL parametresinden alıyoruz
+
+      if (resourceUserId && resourceUserId === user.id) {
+        return true; // Kullanıcı kendi kaydına erişmeye çalışıyorsa izin veriyoruz
+      }
+
+      throw new ForbiddenException('Bu işlemi gerçekleştirmek için gerekli izinlere sahip değilsiniz.');
     }
 
     return true;

@@ -22,8 +22,6 @@ export class EmailService {
   async sendEmail(to: string, subject: string, templateName: string, templateData: any): Promise<void> {
     // Dosya yolunu belirleyin
     const templatePath = path.join(process.cwd(), 'src', 'template', 'HTML', `${templateName}.html`);
-    console.log('Template Path:', templatePath); // Dosya yolunu kontrol etmek için log ekleyin
-
     // Şablon dosyasını oku
     let htmlContent = fs.readFileSync(templatePath, 'utf8');
 

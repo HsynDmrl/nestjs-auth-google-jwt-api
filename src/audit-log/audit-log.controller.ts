@@ -1,27 +1,34 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import { AuditLogService } from './audit-log.service';
 import { AuditLog } from 'src/entities/audit-log.entity';
 import { UserActivity } from 'src/entities/user-activity.entity';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth-guard/jwt-auth.guard';
+import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import { Permissions } from 'src/auth/decorators/permissions/permissions.decorator';
+import { CheckUserOrAdminGuard } from 'src/auth/decorators/permissions/check-user-or-admin.decorator';
 
 @Controller('audit-logs')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AuditLogController {
   constructor(private readonly auditLogService: AuditLogService) {}
 
-  // Tüm audit loglarını döndürür
   @Get()
+  @Permissions('admin_read_users')
   async findAll(): Promise<AuditLog[]> {
     return this.auditLogService.findAll();
   }
 
-  // Belirli bir kullanıcıya ait login aktivitelerini döndürür
-  @Get('user/login-logs/:userId')
-  async findLoginLogsByUserId(@Param('userId') userId: string): Promise<UserActivity[]> {
-    return this.auditLogService.findLoginLogsByUserId(userId);
+  @Get('user-activities')
+  @Permissions('admin_read_users')
+  async findAllUserActivities(): Promise<UserActivity[]> {
+    return this.auditLogService.findAllUserActivities();
   }
 
-  // Belirli bir kullanıcıya ait tüm aktiviteleri döndürür
-  @Get('user/activities/:userId')
-  async findActivitiesByUserId(@Param('userId') userId: string): Promise<UserActivity[]> {
-    return this.auditLogService.findActivitiesByUserId(userId);
+  @Get('user-activities/:userId')
+  @UseGuards(CheckUserOrAdminGuard)
+  async findUserActivities(
+    @Param('userId') userId: string
+  ): Promise<UserActivity[]> {
+    return this.auditLogService.findUserActivitiesByUserId(userId);
   }
 }
