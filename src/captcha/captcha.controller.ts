@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Body, Session, HttpStatus, HttpException } from '@nestjs/common';
 import { CaptchaService } from './captcha.service';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('captcha')
 @Controller('captcha')
 export class CaptchaController {
   constructor(private readonly captchaService: CaptchaService) {}

@@ -19,8 +19,8 @@ export class AuditLogInterceptor implements NestInterceptor {
     const entity = context.getClass().name;
     const action = context.getHandler().name;
 
-    const oldValue = {}; // Eski değeri doldurmanız gerekecek
-    const newValue = {}; // Yeni değeri doldurmanız gerekecek
+    const oldValue = {}; // Eski değeri doldurmak gerek
+    const newValue = {}; // Yeni değeri doldurmak gerek
 
     return next.handle().pipe(
       tap(async (data) => {

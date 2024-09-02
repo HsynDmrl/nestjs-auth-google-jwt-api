@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, IsNull } from 'typeorm';
+import { Repository, Not, IsNull, In  } from 'typeorm';
 import { Role } from 'src/entities/role.entity';
 import { PermissionsService } from '../permissions/permissions.service';
+import { Permission } from 'src/entities/permission.entity';
 
 @Injectable()
 export class AdminRolesService {
@@ -13,7 +14,10 @@ export class AdminRolesService {
     private permissionsService: PermissionsService,
   ) {}
 
-  // Yeni fonksiyon: Role yetki atama
+  async findByIds(ids: string[]): Promise<Role[]> {
+    return this.rolesRepository.findBy({ id: In(ids) });
+  }
+  
   async assignPermissionsToRole(roleId: string, permissionIds: string[]): Promise<Role> {
     const role = await this.findOne(roleId);
     const permissions = await this.permissionsService.findByIds(permissionIds);
@@ -22,7 +26,11 @@ export class AdminRolesService {
       throw new BadRequestException('Geçerli yetkiler bulunamadı');
     }
 
-    role.permissions = permissions;
+    role.permissions = permissions.map(permission => ({
+      id: permission.id,
+      name: permission.name,
+      roles: []
+    })) as Permission[];
     return this.rolesRepository.save(role);
   }
 

@@ -5,7 +5,11 @@ import { Permissions } from 'src/auth/decorators/permissions/permissions.decorat
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth-guard/jwt-auth.guard';
 import { AuditLogInterceptor } from 'src/audit-log/audit-log.interceptor';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+
+@ApiBearerAuth('access-token')
+@ApiTags('Admin-Users')
 @Controller('admin/users')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AdminUsersController {

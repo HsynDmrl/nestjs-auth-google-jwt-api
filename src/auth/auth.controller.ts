@@ -5,20 +5,38 @@ import { LocalAuthGuard } from './guards/local-auth/local-auth.guard';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth-guard/jwt-auth.guard';
 import { Permissions } from 'src/auth/decorators/permissions/permissions.decorator';
-import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import { PermissionsGuard } from './guards/permissions/permissions.guard';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('login')
   @UseGuards(LocalAuthGuard)
+  @ApiOperation({ summary: 'Kullanıcı Girişi', description: 'E-posta ve şifre kullanarak kullanıcı girişi yapar.' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', example: 'admin@admin.com', description: 'Kullanıcı e-posta adresi' },
+        password: { type: 'string', example: 'admin', description: 'Kullanıcı şifresi' },
+        captchaInput: { type: 'string', example: 'abcd', description: 'Captcha doğrulama kodu (opsiyonel)' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Giriş başarılı.' })
+  @ApiResponse({ status: 401, description: 'Geçersiz kimlik bilgileri.' })
   async login(@Req() req, @Body('captchaInput') captchaInput?: string) {
     const ipAddress = req.ip;
     return this.authService.login(req.body.email, req.body.password, ipAddress, captchaInput, req);
   }
 
   @Post('register')
+  @ApiOperation({ summary: 'Kullanıcı Kaydı', description: 'Yeni bir kullanıcı kaydı oluşturur.' })
+  @ApiResponse({ status: 201, description: 'Kayıt başarılı.' })
+  @ApiResponse({ status: 400, description: 'Geçersiz giriş verileri.' })
   async register(@Body() createUserDto: CreateUserDto) {
     return this.authService.register(createUserDto);
   }
@@ -26,6 +44,19 @@ export class AuthController {
   @Post('refresh')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('user_refresh_token')
+  @ApiOperation({ summary: 'Token Yenileme', description: 'Refresh token kullanarak access token yeniler.' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        refreshToken: { type: 'string', example: 'xyz123', description: 'Refresh token' },
+        userId: { type: 'string', example: 'user-id', description: 'Kullanıcı ID' },
+        accessToken: { type: 'string', example: 'abc456', description: 'Mevcut access token' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Token yenileme başarılı.' })
+  @ApiResponse({ status: 401, description: 'Yetkisiz erişim.' })
   async refreshTokens(
     @Body('refreshToken') refreshToken: string,
     @Body('userId') userId: string,
@@ -35,6 +66,10 @@ export class AuthController {
   }
 
   @Get('confirm/:token')
+  @ApiOperation({ summary: 'E-posta Doğrulama', description: 'E-posta doğrulama tokeni ile kullanıcı hesabını doğrular.' })
+  @ApiParam({ name: 'token', description: 'E-posta doğrulama tokeni', example: 'token123' })
+  @ApiResponse({ status: 200, description: 'E-posta doğrulama başarılı.' })
+  @ApiResponse({ status: 400, description: 'Geçersiz veya süresi dolmuş token.' })
   async confirmEmail(@Param('token') token: string) {
     return this.authService.confirmEmail(token);
   }
@@ -42,17 +77,48 @@ export class AuthController {
   @Post('change-password')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('user_change_password')
+  @ApiOperation({ summary: 'Şifre Değiştirme', description: 'Kullanıcı şifresini değiştirir.' })
+  @ApiBody({
+    type: ChangePasswordDto,
+    description: 'Şifre değiştirme için gerekli bilgiler',
+  })
+  @ApiResponse({ status: 200, description: 'Şifre değiştirme başarılı.' })
+  @ApiResponse({ status: 400, description: 'Geçersiz giriş verileri.' })
+  @ApiResponse({ status: 401, description: 'Yetkisiz erişim.' })
   async changePassword(@Req() req, @Body() changePasswordDto: ChangePasswordDto) {
     const userId = req.user.id;
     return this.authService.changePassword(userId, changePasswordDto);
   }
 
   @Post('forgot-password')
+  @ApiOperation({ summary: 'Şifre Sıfırlama Talebi', description: 'Kullanıcı şifresini sıfırlamak için e-posta gönderir.' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', example: 'user@example.com', description: 'Kullanıcı e-posta adresi' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Şifre sıfırlama e-postası gönderildi.' })
+  @ApiResponse({ status: 400, description: 'Geçersiz e-posta adresi.' })
   async forgotPassword(@Body('email') email: string) {
     return this.authService.forgotPassword(email);
   }
 
   @Post('reset-password/:token')
+  @ApiOperation({ summary: 'Şifre Sıfırlama', description: 'Şifre sıfırlama tokeni ile yeni bir şifre belirler.' })
+  @ApiParam({ name: 'token', description: 'Şifre sıfırlama tokeni', example: 'resetToken123' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        newPassword: { type: 'string', example: 'NewP@ssw0rd', description: 'Yeni şifre' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Şifre sıfırlama başarılı.' })
+  @ApiResponse({ status: 400, description: 'Geçersiz veya süresi dolmuş token.' })
   async resetPassword(@Param('token') token: string, @Body('newPassword') newPassword: string) {
     return this.authService.resetPassword(token, newPassword);
   }

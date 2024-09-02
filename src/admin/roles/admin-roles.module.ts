@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AdminRolesService } from './admin-roles.service';
 import { AdminRolesController } from './admin-roles.controller';
@@ -13,7 +13,7 @@ import { AuditLogModule } from 'src/audit-log/audit-log.module';
   imports: [
     TypeOrmModule.forFeature([Role, User]), 
     AuditLogModule,
-    PermissionsModule,
+    forwardRef(() => PermissionsModule),
   ],
   controllers: [AdminRolesController],
   providers: [
@@ -21,5 +21,6 @@ import { AuditLogModule } from 'src/audit-log/audit-log.module';
     PermissionsGuard, 
     Reflector,
   ],
+  exports: [AdminRolesService],
 })
 export class AdminRolesModule {}

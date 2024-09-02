@@ -13,6 +13,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
 import { CaptchaModule } from './captcha/captcha.module';
 
 import * as session from 'express-session';
+import { ModelMapperService } from './model-mapper/model-mapper.service';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import * as session from 'express-session';
     CaptchaModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, ModelMapperService],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
