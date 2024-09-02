@@ -52,16 +52,23 @@ export class AdminRolesController {
   @Post('add')
   @UseInterceptors(AuditLogInterceptor)
   @Permissions('admin_create_role')
-  create(@Body() role: Role): Promise<Role> {
-    return this.adminRolesService.create(role);
+  create(
+    @Body() role: Role,
+    @Body('permissionIds') permissionIds: string[]
+  ): Promise<Role> {
+    return this.adminRolesService.create(role, permissionIds);
   }
 
   // Belirli bir rolü günceller
   @Put('update/:id')
   @Permissions('admin_edit_role')
   @UseInterceptors(AuditLogInterceptor)
-  update(@Param('id') id: string, @Body() role: Role): Promise<Role> {
-    return this.adminRolesService.update(id, role);
+  update(
+    @Param('id') id: string,
+    @Body() role: Role,
+    @Body('permissionIds') permissionIds: string[]
+  ): Promise<Role> {
+    return this.adminRolesService.update(id, role, permissionIds);
   }
 
   // Belirli bir rolü pasif yapar (soft delete)

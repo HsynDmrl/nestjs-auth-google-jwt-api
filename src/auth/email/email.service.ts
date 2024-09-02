@@ -33,7 +33,7 @@ export class EmailService {
 
     // E-posta gönderme işlemi
     const info = await this.transporter.sendMail({
-        from: `"Your App" <${process.env.EMAIL_USER}>`,
+        from: `"Soru Cevap" <${process.env.EMAIL_USER}>`,
         to,
         subject,
         html: htmlContent,

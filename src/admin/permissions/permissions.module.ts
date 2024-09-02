@@ -12,6 +12,6 @@ import { AuditLogModule } from 'src/audit-log/audit-log.module';
   AuditLogModule,UsersModule],
   providers: [PermissionsService, PermissionsGuard],
   controllers: [PermissionsController],
-  exports: [TypeOrmModule, PermissionsGuard],
+  exports: [PermissionsService, TypeOrmModule, PermissionsGuard],
 })
 export class PermissionsModule {}

@@ -10,6 +10,20 @@ export class PermissionsService {
     private readonly permissionsRepository: Repository<Permission>,
   ) {}
 
+  // Belirli ID'lere sahip yetkileri getirir (Soft delete yapılmamış olanlar)
+async findByIds(permissionIds: string[]): Promise<Permission[]> {
+  const permissions = await this.permissionsRepository.findBy({
+    id: In(permissionIds),
+  });
+
+  if (permissions.length === 0) {
+    throw new NotFoundException('Belirtilen ID\'lere sahip yetkiler bulunamadı');
+  }
+
+  return permissions;
+}
+
+
   // Tüm yetkileri getirir (Soft delete yapılmamış olanlar)
   async findAll(page: number, limit: number): Promise<{ permissions: Permission[], total: number, totalPages: number }> {
     const [permissions, total] = await this.permissionsRepository.findAndCount({
