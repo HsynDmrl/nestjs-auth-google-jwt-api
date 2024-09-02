@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
@@ -32,78 +32,63 @@ export class AuthService {
     private readonly roleRepository: Repository<Role>,
   ) { }
 
-  async validateUser(email: string, pass: string, ipAddress: string, captchaInput?: string): Promise<any> {
+  async login(email: string, pass: string, ipAddress: string, captchaInput?: string, request?: any): Promise<any> {
+    const user = await this.findUserAndCheckAttempts(email, pass, ipAddress, captchaInput);
+    if (!user) {
+      throw new UnauthorizedException('Geçersiz kimlik bilgileri');
+    }
+
+    // Access token ve refresh token oluştur
+    const payload = { id: user.id, email: user.email, roles: user.roles };
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = await this.refreshTokenService.generateRefreshToken(user);
+
+    // Kullanıcı aktivitesini loglama (IP adresi burada loglanıyor)
+    await this.auditLogService.logUserActivity(user, request, AuditLogType.SUCCESS);
+
+    return {
+      accessToken,
+      refreshToken: refreshToken.token,
+    };
+  }
+
+  async findUserAndCheckAttempts(email: string, pass: string, ipAddress: string, captchaInput?: string): Promise<any> {
     // Rate Limiting ve engelleme durumu kontrolü
     const attempt = await this.failedLoginAttemptService.countFailedAttempts(email, ipAddress);
 
-    // Oturumda saklanan veriyi kontrol edelim
-    console.log('Oturumdaki attempt:', attempt);
-
     // 3 veya daha fazla başarısız giriş denemesi olduysa, Captcha zorunlu kıl
     if (attempt && attempt.attemptCount >= 3) {
-        console.log('Captcha gerekli. Kullanıcıdan alınan captchaInput:', captchaInput);
-        if (!captchaInput) {
-            console.log('CAPTCHA gereklidir, ancak giriş sağlanmadı.');
-            throw new HttpException('Captcha gereklidir', HttpStatus.BAD_REQUEST);
-        }
-        
-        console.log('Oturumdaki captchaText:', attempt.captchaText);
-        const captchaIsValid = this.captchaService.verifyCaptcha(captchaInput, attempt.captchaText);
-        if (!captchaIsValid) {
-            console.log('CAPTCHA doğrulaması başarısız oldu.');
+        if (!captchaInput || !this.captchaService.verifyCaptcha(captchaInput, attempt.captchaText)) {
             throw new HttpException('Captcha doğrulaması başarısız oldu.', HttpStatus.BAD_REQUEST);
         }
     }
 
     const user = await this.usersService.findOneByEmail(email);
 
-    // Kullanıcı bulunamazsa veya soft delete yapılmışsa
     if (!user || user.deletedAt) {
-        if (user) {
-            await this.auditLogService.logFailedLogin(user, ipAddress);
-            await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress);
-        }
-        throw new HttpException('Kullanıcı pasif durumda veya bulunamadı', HttpStatus.UNAUTHORIZED);
+      if (user) {
+        await this.auditLogService.logFailedLogin(user, ipAddress);
+        await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress);
+      }
+      return null;
     }
 
-    // E-posta doğrulanmamışsa
     if (!user.emailConfirmed) {
-        await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress); // Başarısız giriş denemesi kaydediliyor
-        await this.auditLogService.logFailedLogin(user, ipAddress); // Başarısız giriş denemesi kaydediliyor
-        throw new HttpException('E-posta doğrulanmamış', HttpStatus.FORBIDDEN);
+      await this.auditLogService.logFailedLogin(user, ipAddress);
+      await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress);
+      throw new HttpException('E-posta doğrulanmamış', HttpStatus.FORBIDDEN);
     }
 
-    // Şifre yanlışsa
     const isPasswordMatching = await bcrypt.compare(pass, user.password);
     if (!isPasswordMatching) {
-        await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress); // Başarısız giriş denemesi kaydediliyor
-        await this.auditLogService.logFailedLogin(user, ipAddress); // Başarısız giriş denemesi kaydediliyor
-        throw new HttpException('Geçersiz kimlik bilgileri', HttpStatus.UNAUTHORIZED);
+      await this.auditLogService.logFailedLogin(user, ipAddress);
+      await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress);
+      throw new HttpException('Geçersiz kimlik bilgileri', HttpStatus.UNAUTHORIZED);
     }
 
-    // Giriş başarılı, başarısız denemeleri temizliyoruz
     await this.failedLoginAttemptService.clearFailedAttempts(email, ipAddress);
-
-    // Access token ve refresh token oluştur
-    const payload = { id: user.id, email: user.email, roles: user.roles };
-    const accessToken = this.jwtService.sign(payload);
-
-    const refreshToken = await this.refreshTokenService.generateRefreshToken(user);
-
-    return {
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        roles: user.roles,
-      },
-      accessToken,
-      refreshToken: refreshToken.token,
-    };
-}
-
-
-
+    return user;
+  }
 
   async register(createUserDto: CreateUserDto): Promise<any> {
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
@@ -143,44 +128,41 @@ export class AuthService {
     return { message: 'E-posta başarıyla doğrulandı. Artık giriş yapabilirsiniz.' };
   }
 
-  async login(user: any, request: any) {
-    const payload = { id: user.id, email: user.email, roles: user.roles };
-    const accessToken = this.jwtService.sign(payload);
-
-    const refreshToken = await this.refreshTokenService.generateRefreshToken(user);
-
-    // Kullanıcı aktivitesini loglama (IP adresi burada loglanıyor)
-    await this.auditLogService.logUserActivity(user, request, AuditLogType.SUCCESS);
-
-    return {
-      accessToken,
-      refreshToken: refreshToken.token,
-    };
-}
 
   async refreshTokens(refreshToken: string, userId: string, accessToken: string, request: any = null): Promise<any> {
     // Refresh token'ı doğrula
     const validRefreshToken = await this.refreshTokenService.validateRefreshToken(refreshToken);
-
+  
     if (!validRefreshToken || validRefreshToken.user.id !== userId) {
       throw new HttpException('Geçersiz refresh token', HttpStatus.UNAUTHORIZED);
     }
-
+  
     // Access token'ı doğrula
     try {
       this.jwtService.verify(accessToken, { ignoreExpiration: true });
     } catch (error) {
       throw new HttpException('Geçersiz access token', HttpStatus.UNAUTHORIZED);
     }
-
+  
     const user = validRefreshToken.user;
-
+  
     // Refresh token'ı iptal et
     await this.refreshTokenService.revokeRefreshToken(refreshToken);
-
-    // Yeni access ve refresh token döndür, request null olarak geçiliyor
-    return this.login(user, request);
+  
+    // Yeni access token ve refresh token oluştur
+    const payload = { id: user.id, email: user.email, roles: user.roles };
+    const newAccessToken = this.jwtService.sign(payload);
+    const newRefreshToken = await this.refreshTokenService.generateRefreshToken(user);
+  
+    // Kullanıcı aktivitesini loglama (IP adresi burada loglanıyor)
+    await this.auditLogService.logUserActivity(user, request, AuditLogType.SUCCESS);
+  
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken.token,
+    };
   }
+  
 
   async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<any> {
     const user = await this.usersService.findOneById(userId);

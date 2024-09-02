@@ -36,7 +36,7 @@ export class FailedLoginAttemptService {
         console.log('Yeni captchaText:', captcha.text);
     }
 
-    console.log('Güncellenen attempt:', attempt);
+    //console.log('Güncellenen attempt:', attempt);
 
     // Engelleme süresini her 5, 10, 15 ve 20. denemede hesapla ve kaydet
     attempt.lockedUntil = this.calculateLockoutTime(attempt.attemptCount);

@@ -9,14 +9,14 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
   constructor(private authService: AuthService) {
     super({
       usernameField: 'email',
-      passReqToCallback: true, // `req` objesini `validate` metoduna geçirir
+      passReqToCallback: true,
     });
   }
 
   async validate(req: any, email: string, password: string): Promise<any> {
-    const ipAddress = requestIp.getClientIp(req); // IP adresini alıyoruz
-    const captchaInput = req.body.captchaInput; // CAPTCHA inputunu alıyoruz
-    const user = await this.authService.validateUser(email, password, ipAddress, captchaInput);
+    const ipAddress = requestIp.getClientIp(req);
+    const captchaInput = req.body.captchaInput;
+    const user = await this.authService.findUserAndCheckAttempts(email, password, ipAddress, captchaInput);
     if (!user) {
       throw new UnauthorizedException();
     }

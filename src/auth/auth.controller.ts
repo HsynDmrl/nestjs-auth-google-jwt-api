@@ -15,7 +15,7 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   async login(@Req() req, @Body('captchaInput') captchaInput?: string) {
     const ipAddress = req.ip;
-    return this.authService.validateUser(req.body.email, req.body.password, ipAddress, captchaInput);
+    return this.authService.login(req.body.email, req.body.password, ipAddress, captchaInput, req);
   }
 
   @Post('register')
