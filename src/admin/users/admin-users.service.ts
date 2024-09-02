@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/entities/user.entity';
 import { Role } from 'src/entities/role.entity';
 import { Repository, Not, IsNull, In } from 'typeorm';
-import { AuthService } from 'src/auth/auth.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -14,8 +13,6 @@ export class AdminUsersService {
 
     @InjectRepository(Role)
     private rolesRepository: Repository<Role>,
-    
-    private readonly authService: AuthService,
   ) {}
 
   // Tüm kullanıcıları getirir (Soft delete yapılmamış olanlar)
