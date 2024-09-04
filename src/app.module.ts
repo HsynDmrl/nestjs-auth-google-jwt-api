@@ -13,6 +13,8 @@ import { AuditLogModule } from './audit-log/audit-log.module';
 import { CaptchaModule } from './captcha/captcha.module';
 
 import * as session from 'express-session';
+import { APP_FILTER } from '@nestjs/core';
+import { GlobalExceptionFilter } from './core/exceptions/filters/global-exception.filter'; // Filter'ı da ekliyoruz
 import { ModelMapperService } from './model-mapper/model-mapper.service';
 
 @Module({
@@ -31,7 +33,14 @@ import { ModelMapperService } from './model-mapper/model-mapper.service';
     CaptchaModule,
   ],
   controllers: [AppController],
-  providers: [AppService, ModelMapperService],
+  providers: [
+    AppService, 
+    ModelMapperService, 
+    {
+      provide: APP_FILTER,
+      useClass: GlobalExceptionFilter,
+    },
+  ],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
@@ -44,6 +53,6 @@ export class AppModule {
           cookie: { maxAge: 3600000 }, // 1 saatlik oturum süresi
         }),
       )
-      .forRoutes('*')
+      .forRoutes('*');
   }
 }
