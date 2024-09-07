@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, UseGuards, Param, Get, Headers, Ip } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, Param, Get } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from 'src/users/dto/create-user.dto/create-user.dto';
 import { LocalAuthGuard } from './guards/local-auth/local-auth.guard';
@@ -6,9 +6,10 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth-guard/jwt-auth.guard';
 import { Permissions } from 'src/auth/decorators/permissions/permissions.decorator';
 import { PermissionsGuard } from './guards/permissions/permissions.guard';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 
-@ApiTags('auth')
+@ApiBearerAuth('access-token')
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -35,6 +36,7 @@ export class AuthController {
 
   @Post('register')
   @ApiOperation({ summary: 'Kullanıcı Kaydı', description: 'Yeni bir kullanıcı kaydı oluşturur.' })
+  @ApiBody({ type: CreateUserDto })
   @ApiResponse({ status: 201, description: 'Kayıt başarılı.' })
   @ApiResponse({ status: 400, description: 'Geçersiz giriş verileri.' })
   async register(@Body() createUserDto: CreateUserDto) {

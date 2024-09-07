@@ -82,7 +82,7 @@ export class PermissionsController {
   @Delete('soft/:id')
   @Permissions('admin_delete_role')
   @UseInterceptors(AuditLogInterceptor)
-  @ApiOperation({ summary: 'Yetkiyi Soft Delete Yap', description: 'Belirtilen ID\'ye sahip yetkiyi soft delete ile pasif yapar.' })
+  @ApiOperation({ summary: 'Yetkiyi Soft Delete Yap', description: 'Belirtilen ID\'ye sahip yetkiyi soft delete yapar.' })
   @ApiParam({ name: 'id', description: 'Yetki ID\'si', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
   @ApiResponse({ status: 200, description: 'Yetki başarıyla pasif hale getirildi.' })
   softRemove(@Param('id') id: string): Promise<{ message: string }> {

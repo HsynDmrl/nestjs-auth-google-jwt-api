@@ -7,7 +7,6 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth-guard/jwt-auth.guard';
 import { AuditLogInterceptor } from 'src/audit-log/audit-log.interceptor';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 
-
 @ApiBearerAuth('access-token')
 @ApiTags('Roller')
 @Controller('admin/roles')
@@ -29,7 +28,7 @@ export class AdminRolesController {
   @Get('inactive')
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Pasif Rolleri Getir', description: 'Soft delete yapılmış olan tüm pasif rolleri getirir.' })
-  @ApiResponse({ status: 200, description: 'Roller başarıyla alındı.', type: [Role] })
+  @ApiResponse({ status: 200, description: 'Pasif roller başarıyla alındı.', type: [Role] })
   findAllInactive(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
@@ -100,7 +99,7 @@ export class AdminRolesController {
   @Delete('soft/:id')
   @Permissions('admin_delete_role')
   @UseInterceptors(AuditLogInterceptor)
-  @ApiOperation({ summary: 'Rolü Soft Delete Yap', description: 'Belirtilen ID\'ye sahip rolü soft delete ile pasif yapar.' })
+  @ApiOperation({ summary: 'Rolü Soft Delete Yap', description: 'Belirtilen ID\'ye sahip rolü soft delete yapar.' })
   @ApiParam({ name: 'id', description: 'Rol ID\'si', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
   @ApiResponse({ status: 200, description: 'Rol başarıyla pasif hale getirildi.' })
   softRemove(@Param('id') id: string): Promise<{ message: string }> {
