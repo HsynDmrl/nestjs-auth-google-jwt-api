@@ -1,48 +1,67 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, IsNull, In  } from 'typeorm';
+import { Repository, Not, IsNull, In } from 'typeorm';
 import { Role } from 'src/entities/role.entity';
 import { PermissionsService } from '../permissions/permissions.service';
-import { Permission } from 'src/entities/permission.entity';
+import { AdminRolesBusinessLogic } from './admin-roles-business.logic';
 
 @Injectable()
 export class AdminRolesService {
   constructor(
     @InjectRepository(Role)
     private rolesRepository: Repository<Role>,
-    
     private permissionsService: PermissionsService,
-  ) {}
+    private readonly roleBusinessLogic: AdminRolesBusinessLogic,
+  ) { }
 
   async findByIds(ids: string[]): Promise<Role[]> {
     return this.rolesRepository.findBy({ id: In(ids) });
   }
-  
+  async findAllIncludingDeleted(page: number, limit: number): Promise<{ roles: Role[], total: number, totalPages: number }> {
+    const [roles, total] = await this.rolesRepository.findAndCount({
+      withDeleted: true,
+      relations: ['permissions'],
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    // Tüm rollerin varlığını business logic ile kontrol edin
+    this.roleBusinessLogic.validateRolesExist(roles);
+
+    const totalPages = Math.ceil(total / limit);
+    return { roles, total, totalPages };
+  }
+  async findOne(id: string): Promise<Role> {
+    const role = await this.rolesRepository.findOne({
+      where: { id },
+      withDeleted: true,
+      relations: ['permissions'],
+    });
+
+    // Rolü kontrol et
+    this.roleBusinessLogic.validateRoleExists(role, id);
+    return role;
+  }
+
   async assignPermissionsToRole(roleId: string, permissionIds: string[]): Promise<Role> {
     const role = await this.findOne(roleId);
     const permissions = await this.permissionsService.findByIds(permissionIds);
 
-    if (permissions.length === 0) {
-      throw new BadRequestException('Geçerli yetkiler bulunamadı');
-    }
+    // Geçerli yetkilerin olup olmadığını business logic'te kontrol et
+    this.roleBusinessLogic.validatePermissionsExist(permissions);
 
-    role.permissions = permissions.map(permission => ({
-      id: permission.id,
-      name: permission.name,
-      roles: []
-    })) as Permission[];
+    role.permissions = permissions;
     return this.rolesRepository.save(role);
   }
 
-  // Yeni bir rol oluşturur
   async create(role: Role, permissionIds: string[]): Promise<Role> {
     const existingRole = await this.rolesRepository.findOne({ where: { name: role.name }, withDeleted: true });
-    if (existingRole) {
-      throw new BadRequestException('Bu isimde bir rol zaten mevcut.');
-    }
+
+    // Rol isminin benzersiz olup olmadığını business logic ile kontrol edin
+    this.roleBusinessLogic.validateRoleNameUniqueness(existingRole);
 
     const createdRole = await this.rolesRepository.save(role);
-    
+
     if (permissionIds.length > 0) {
       return this.assignPermissionsToRole(createdRole.id, permissionIds);
     }
@@ -50,14 +69,12 @@ export class AdminRolesService {
     return createdRole;
   }
 
-  // Belirli bir rolü günceller
   async update(id: string, role: Role, permissionIds: string[]): Promise<Role> {
-    const existingRole = await this.findOne(id); // findOne metodu zaten rolü bulamazsa exception atar
-
+    const existingRole = await this.findOne(id);
     const roleWithSameName = await this.rolesRepository.findOne({ where: { name: role.name, id: Not(id) }, withDeleted: true });
-    if (roleWithSameName) {
-      throw new BadRequestException('Bu isimde başka bir rol zaten mevcut.');
-    }
+
+    // Rol isminin benzersiz olup olmadığını business logic ile kontrol edin
+    this.roleBusinessLogic.validateRoleNameUniqueness(roleWithSameName);
 
     Object.assign(existingRole, role);
     const updatedRole = await this.rolesRepository.save(existingRole);
@@ -69,80 +86,86 @@ export class AdminRolesService {
     return updatedRole;
   }
 
-  // Soft delete işlemi (Rolü pasif yapar)
   async softRemove(id: string): Promise<{ message: string }> {
-    const role = await this.findOne(id); // Rol yoksa exception atar
+    const role = await this.findOne(id);
+
     await this.rolesRepository.softDelete(id);
-    return { message: `Rol ${role.name} soft delete ile pasif yapıldı.` };
+
+    // Soft delete mesajını business logic ile oluştur
+    return { message: this.roleBusinessLogic.generateSoftDeleteMessage(role.name) };
   }
 
-  // Soft delete yapılmış rolü geri yükler
   async restore(id: string): Promise<{ message: string }> {
-    const role = await this.findOne(id); // Rol yoksa exception atar
+    const role = await this.findOne(id);
+
     await this.rolesRepository.restore(id);
-    return { message: `Rol ${role.name} geri yüklendi.` };
+
+    // Restore mesajını business logic ile oluştur
+    return { message: this.roleBusinessLogic.generateRestoreMessage(role.name) };
   }
 
-  // Kalıcı olarak siler (Hard delete)
   async remove(id: string): Promise<{ message: string }> {
-    const role = await this.findOne(id); // Rol yoksa exception atar
+    // Rolü bul
+    const role = await this.findOne(id);
+  
+    // Eğer rol soft delete yapılmışsa geri yüklemeden silinmesini engelle
+    this.roleBusinessLogic.validateNotSoftDeleted(role);
+  
+    // İlişkileri kaldır
+    await this.removeRoleRelations(id);
+  
+    // Rolü kalıcı olarak sil
     await this.rolesRepository.delete(id);
-    return { message: `Rol ${role.name} kalıcı olarak silindi.` };
+  
+    // Mesajı döndür
+    return { message: this.roleBusinessLogic.generateHardDeleteMessage(role.name) };
   }
   
+
   async findAll(page: number, limit: number): Promise<{ roles: Role[], total: number, totalPages: number }> {
     const [roles, total] = await this.rolesRepository.findAndCount({
       relations: ['permissions'],
       skip: (page - 1) * limit,
       take: limit,
     });
-    if (roles.length === 0) {
-      throw new NotFoundException('Rol bulunamadı');
-    }
+
+    // Rollerin varlığını business logic ile kontrol et
+    this.roleBusinessLogic.validateRolesExist(roles);
+
     const totalPages = Math.ceil(total / limit);
     return { roles, total, totalPages };
   }
-  
+
   async findAllInactive(page: number, limit: number): Promise<{ roles: Role[], total: number, totalPages: number }> {
     const [roles, total] = await this.rolesRepository.findAndCount({
-      where: {
-        deletedAt: Not(IsNull()),
-      },
-      withDeleted: true,
-      relations: ['permissions'], 
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-    if (roles.length === 0) {
-      throw new NotFoundException('Pasif rol bulunamadı');
-    }
-    const totalPages = Math.ceil(total / limit);
-    return { roles, total, totalPages };
-  }
-  
-  async findAllIncludingDeleted(page: number, limit: number): Promise<{ roles: Role[], total: number, totalPages: number }> {
-    const [roles, total] = await this.rolesRepository.findAndCount({
+      where: { deletedAt: Not(IsNull()) },
       withDeleted: true,
       relations: ['permissions'],
       skip: (page - 1) * limit,
       take: limit,
     });
-    if (roles.length === 0) {
-      throw new NotFoundException('Rol bulunamadı');
-    }
+
+    // Pasif rollerin varlığını business logic ile kontrol et
+    this.roleBusinessLogic.validateInactiveRolesExist(roles);
+
     const totalPages = Math.ceil(total / limit);
     return { roles, total, totalPages };
   }
-  
-  async findOne(id: string): Promise<Role> {
-    const role = await this.rolesRepository.findOne({
-      where: { id },
-      withDeleted: true,
-      relations: ['permissions'],  
-    });
-    if (!role) {
-      throw new NotFoundException(`Rol ID'si ${id} olan rol bulunamadı`);
-    }
-    return role;
+
+  async removeRoleRelations(roleId: string): Promise<void> {
+    const role = await this.findOne(roleId);
+
+    // Yetkiler ve kullanıcılarla olan ilişkileri kaldır
+    await this.rolesRepository
+      .createQueryBuilder()
+      .relation(Role, 'permissions')
+      .of(role)
+      .remove(role.permissions);
+
+    await this.rolesRepository
+      .createQueryBuilder()
+      .relation(Role, 'users')
+      .of(role)
+      .remove(role.users);
   }
 }

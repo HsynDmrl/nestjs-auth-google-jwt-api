@@ -1,13 +1,16 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, IsNull, In } from 'typeorm';
 import { Permission } from 'src/entities/permission.entity';
 import { PermissionsBusinessLogic } from './permissions-business.logic';
 import { ModelMapperService } from 'src/model-mapper/model-mapper.service';
-import { CreatePermissionRequestDto } from './dto/create-permission-request.dto';
-import { CreatePermissionResponseDto } from './dto/create-permission-response.dto';
-import { FindAllPermissionsResponseDto } from './dto/find-all-permissions-response.dto';
-import { AdminRolesService } from '../roles/admin-roles.service';
+import { CreatePermissionResponseDto } from './dto/responses/concretes/create-permission-response.dto';
+import { FindAllPermissionsResponseDto } from './dto/responses/concretes/find-all-permissions-response.dto';
+import { UpdatePermissionResponseDto } from './dto/responses/concretes/update-permission-response.dto';
+import { CreatePermissionRequestDto } from './dto/requests/concretes/create-permission-request.dto';
+import { UpdatePermissionRequestDto } from './dto/requests/concretes/update-permission-request.dto';
+import { SoftDeletePermissionResponseDto } from './dto/responses/concretes/soft-delete-permission-response.dto';
+import { RestorePermissionResponseDto } from './dto/responses/concretes/restore-permission-response.dto';
 
 @Injectable()
 export class PermissionsService {
@@ -16,8 +19,6 @@ export class PermissionsService {
     private readonly permissionsRepository: Repository<Permission>,
     private readonly permissionsLogic: PermissionsBusinessLogic,
     private readonly modelMapper: ModelMapperService,
-    @Inject(forwardRef(() => AdminRolesService))
-    private readonly roleService: AdminRolesService,
   ) {}
 
   async findByIds(permissionIds: string[]): Promise<FindAllPermissionsResponseDto[]> {
@@ -65,17 +66,13 @@ export class PermissionsService {
   async findOne(id: string): Promise<FindAllPermissionsResponseDto> {
     const permission = await this.permissionsRepository.findOne({
       where: { id },
-      withDeleted: true,
-      relations: ['roles'],
+      withDeleted: true
     });
   
     this.permissionsLogic.validatePermissionExists(permission, id);
   
-    const roles = permission.roles ? permission.roles.map(role => role.name) : [];
-  
     return {
-      ...this.modelMapper.mapToDto(permission, FindAllPermissionsResponseDto),
-      roles,
+      ...this.modelMapper.mapToDto(permission, FindAllPermissionsResponseDto)
     };
   }
 
@@ -88,56 +85,60 @@ export class PermissionsService {
     return this.modelMapper.mapToDto(savedPermission, CreatePermissionResponseDto);
   }
 
-  async update(id: string, updatePermissionDto: CreatePermissionRequestDto): Promise<CreatePermissionResponseDto> {
+  async update(id: string, updatePermissionDto: UpdatePermissionRequestDto): Promise<UpdatePermissionResponseDto> {
+    // Var olan yetkiyi bul
     const existingPermission = await this.permissionsRepository.findOne({
-      where: { id },
-      relations: ['roles'],
+      where: { id }
     });
   
+    // Eğer var olan bir yetki yoksa, NotFoundException fırlat
     this.permissionsLogic.validatePermissionExists(existingPermission, id);
   
-    const roles = updatePermissionDto.roles 
-      ? await this.roleService.findByIds(updatePermissionDto.roles)
-      : existingPermission.roles;
+    // Var olan yetkinin sadece güncellenen alanlarını değiştirmek için Object.assign
+    const updatedPermission = Object.assign(existingPermission, updatePermissionDto);
   
-    const updatedPermission = this.modelMapper.mapToEntity(updatePermissionDto, Permission);
-    updatedPermission.roles = roles;
-  
+    // Güncellenen yetkiyi kaydet
     const savedPermission = await this.permissionsRepository.save(updatedPermission);
-    return this.modelMapper.mapToDto(savedPermission, CreatePermissionResponseDto);
+  
+    // Kaydedilen yetkiyi DTO'ya dönüştürüp döndür
+    return this.modelMapper.mapToDto(savedPermission, UpdatePermissionResponseDto);
   }
   
-
-  async softRemove(id: string): Promise<{ message: string }> {
+  
+  async softRemove(id: string): Promise<SoftDeletePermissionResponseDto> {
     const permission = await this.findOne(id);
+    
+    // Zaten soft delete yapılmış mı kontrol et
+    this.permissionsLogic.validateNotSoftDeleted(permission);
+  
     await this.permissionsRepository.softDelete(id);
-    return this.permissionsLogic.generateMessage('soft delete ile pasif yapıldı', permission.name);
+    return {
+      message: this.permissionsLogic.generateSoftDeleteMessage(permission.name),
+      permissionName: permission.name,
+    };
   }
-
-  async restore(id: string): Promise<{ message: string }> {
+  
+  async restore(id: string): Promise<RestorePermissionResponseDto> {
     const permission = await this.findOne(id);
+  
+    // Sadece soft delete yapılmış yetkileri geri yükle
+    this.permissionsLogic.validateSoftDeleted(permission);
+  
     await this.permissionsRepository.restore(id);
-    return this.permissionsLogic.generateMessage('geri yüklendi', permission.name);
+    return {
+      message: this.permissionsLogic.generateRestoreMessage(permission.name),
+      permissionName: permission.name,
+    };
   }
-
+  
   async remove(id: string): Promise<{ message: string }> {
-    const permission = await this.permissionsRepository.findOne({
-        where: { id },
-        relations: ['roles'],
-    });
-
-    this.permissionsLogic.validatePermissionExists(permission, id);
-
-    await this.permissionsRepository
-        .createQueryBuilder()
-        .relation(Permission, 'roles')
-        .of(permission)
-        .remove(permission.roles);
+    const permission = await this.findOne(id);
+    this.permissionsLogic.validateNotSoftDeleted(permission);
 
     await this.permissionsRepository.delete(id);
-
-    return this.permissionsLogic.generateMessage('kalıcı olarak silindi', permission.name);
-}
-
+    return { message: this.permissionsLogic.generateHardDeleteMessage(permission.name) };
+  }
+  
+  
   
 }

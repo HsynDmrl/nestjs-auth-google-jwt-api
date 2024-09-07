@@ -1,16 +1,21 @@
 import { Controller, Get, Query, Post, Body, Param, Delete, Put, UseGuards, UseInterceptors } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
-import { CreatePermissionRequestDto } from './dto/create-permission-request.dto';
-import { CreatePermissionResponseDto } from './dto/create-permission-response.dto';
-import { FindAllPermissionsResponseDto } from './dto/find-all-permissions-response.dto';
+import { CreatePermissionResponseDto } from './dto/responses/concretes/create-permission-response.dto';
+import { FindAllPermissionsResponseDto } from './dto/responses/concretes/find-all-permissions-response.dto';
 import { Permissions } from 'src/auth/decorators/permissions/permissions.decorator';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth-guard/jwt-auth.guard';
 import { AuditLogInterceptor } from 'src/audit-log/audit-log.interceptor';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { UpdatePermissionResponseDto } from './dto/responses/concretes/update-permission-response.dto';
+import { CreatePermissionRequestDto } from './dto/requests/concretes/create-permission-request.dto';
+import { UpdatePermissionRequestDto } from './dto/requests/concretes/update-permission-request.dto';
+import { ActiveAllPermissionsResponseDto } from './dto/responses/concretes/active-all-permissions-response.dto';
+import { InactiveAllPermissionsResponseDto } from './dto/responses/concretes/inactive-all-permissions-response.dto';
+import { GetByIdPermissionsResponseDto } from './dto/responses/concretes/getById-permissions-resoonse.dto';
 
 @ApiBearerAuth('access-token')
-@ApiTags('Permissions')
+@ApiTags('Admin-Permissions')
 @Controller('permissions')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PermissionsController {
@@ -19,22 +24,22 @@ export class PermissionsController {
   @Get('active')
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Aktif Yetkileri Getir', description: 'Soft delete yapılmamış olan tüm aktif yetkileri getirir.' })
-  @ApiResponse({ status: 200, description: 'Yetkiler başarıyla alındı.', type: [FindAllPermissionsResponseDto] })
+  @ApiResponse({ status: 200, description: 'Yetkiler başarıyla alındı.', type: [ActiveAllPermissionsResponseDto] })
   findAll(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
-  ): Promise<{ permissions: FindAllPermissionsResponseDto[], total: number, totalPages: number }> {
+  ): Promise<{ permissions: ActiveAllPermissionsResponseDto[], total: number, totalPages: number }> {
     return this.permissionsService.findAll(page, limit);
   }
 
   @Get('inactive')
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Pasif Yetkileri Getir', description: 'Soft delete yapılmış olan tüm pasif yetkileri getirir.' })
-  @ApiResponse({ status: 200, description: 'Yetkiler başarıyla alındı.', type: [FindAllPermissionsResponseDto] })
+  @ApiResponse({ status: 200, description: 'Yetkiler başarıyla alındı.', type: [InactiveAllPermissionsResponseDto] })
   findAllInactive(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
-  ): Promise<{ permissions: FindAllPermissionsResponseDto[], total: number, totalPages: number }> {
+  ): Promise<{ permissions: InactiveAllPermissionsResponseDto[], total: number, totalPages: number }> {
     return this.permissionsService.findAllInactive(page, limit);
   }
 
@@ -53,8 +58,8 @@ export class PermissionsController {
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Yetki Detayını Getir', description: 'Belirtilen ID\'ye sahip yetkiyi getirir.' })
   @ApiParam({ name: 'id', description: 'Yetki ID\'si', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
-  @ApiResponse({ status: 200, description: 'Yetki başarıyla alındı.', type: FindAllPermissionsResponseDto })
-  findOne(@Param('id') id: string): Promise<FindAllPermissionsResponseDto> {
+  @ApiResponse({ status: 200, description: 'Yetki başarıyla alındı.', type: GetByIdPermissionsResponseDto })
+  findOne(@Param('id') id: string): Promise<GetByIdPermissionsResponseDto> {
     return this.permissionsService.findOne(id);
   }
 
@@ -73,9 +78,9 @@ export class PermissionsController {
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Yetkiyi Güncelle', description: 'Belirtilen ID\'ye sahip yetkiyi günceller.' })
   @ApiParam({ name: 'id', description: 'Yetki ID\'si', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
-  @ApiBody({ type: CreatePermissionRequestDto })
-  @ApiResponse({ status: 200, description: 'Yetki başarıyla güncellendi.', type: CreatePermissionResponseDto })
-  update(@Param('id') id: string, @Body() updatePermissionDto: CreatePermissionRequestDto): Promise<CreatePermissionResponseDto> {
+  @ApiBody({ type: UpdatePermissionRequestDto })
+  @ApiResponse({ status: 200, description: 'Yetki başarıyla güncellendi.', type: UpdatePermissionRequestDto })
+  update(@Param('id') id: string, @Body() updatePermissionDto: UpdatePermissionRequestDto): Promise<UpdatePermissionResponseDto> {
     return this.permissionsService.update(id, updatePermissionDto);
   }
 

@@ -8,19 +8,25 @@ import { User } from 'src/entities/user.entity';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { Reflector } from '@nestjs/core';
 import { AuditLogModule } from 'src/audit-log/audit-log.module';
+import { AdminRolesBusinessLogic } from './admin-roles-business.logic';
+import { PermissionsService } from '../permissions/permissions.service';
+import { ModelMapperModule } from 'src/model-mapper/model-mapper.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Role, User]), 
     AuditLogModule,
+    ModelMapperModule, 
     forwardRef(() => PermissionsModule),
   ],
   controllers: [AdminRolesController],
-  providers: [
-    AdminRolesService, 
-    PermissionsGuard, 
+  providers: [ 
+    AdminRolesBusinessLogic,
+    AdminRolesService,
+    PermissionsGuard,
+    PermissionsService,
     Reflector,
   ],
-  exports: [AdminRolesService],
+  exports: [AdminRolesService, AdminRolesBusinessLogic],
 })
 export class AdminRolesModule {}

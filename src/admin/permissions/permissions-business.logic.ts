@@ -24,12 +24,34 @@ export class PermissionsBusinessLogic {
       throw new BadRequestException('Bu isimde bir yetki zaten mevcut.');
     }
   }
+  // Eğer zaten soft delete yapılmışsa hata fırlat
+  validateNotSoftDeleted(permission: Permission): void {
+    if (permission.deletedAt) {
+      throw new BadRequestException(`Yetki '${permission.name}' zaten soft delete yapılmış.`);
+    }
+  }
+
+  // Eğer soft delete yapılmamışsa hata fırlat
+  validateSoftDeleted(permission: Permission): void {
+    if (!permission.deletedAt) {
+      throw new BadRequestException(`Yetki '${permission.name}' soft delete yapılmadığı için geri yüklenemez.`);
+    }
+  }
 
   calculateTotalPages(total: number, limit: number): number {
     return Math.ceil(total / limit);
   }
 
-  generateMessage(action: string, permissionName: string): { message: string } {
-    return { message: `Yetki ${permissionName} ${action}.` };
+  generateSoftDeleteMessage(permissionName: string): string {
+    return `Yetki '${permissionName}' soft delete ile pasif yapıldı.`;
   }
+
+  generateRestoreMessage(permissionName: string): string {
+    return `Yetki '${permissionName}' geri yüklendi.`;
+  }
+
+  generateHardDeleteMessage(permissionName: string): string {
+    return `Yetki '${permissionName}' kalıcı olarak silindi.`;
+  }
+
 }

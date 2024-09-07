@@ -8,7 +8,7 @@ import { AuditLogInterceptor } from 'src/audit-log/audit-log.interceptor';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiBearerAuth('access-token')
-@ApiTags('Roller')
+@ApiTags('Admin-Roles')
 @Controller('admin/roles')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AdminRolesController {

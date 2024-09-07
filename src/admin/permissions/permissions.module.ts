@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PermissionsService } from './permissions.service';
 import { PermissionsController } from './permissions.controller';
@@ -8,7 +8,6 @@ import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard'
 import { AuditLogModule } from 'src/audit-log/audit-log.module';
 import { PermissionsBusinessLogic } from './permissions-business.logic';
 import { ModelMapperModule } from 'src/model-mapper/model-mapper.module';
-import { AdminRolesModule } from '../roles/admin-roles.module';
 
 @Module({
   imports: [
@@ -16,10 +15,9 @@ import { AdminRolesModule } from '../roles/admin-roles.module';
     ModelMapperModule, 
     AuditLogModule, 
     UsersModule,
-    forwardRef(() => AdminRolesModule),
   ],
   providers: [PermissionsService, PermissionsGuard, PermissionsBusinessLogic],
   controllers: [PermissionsController],
-  exports: [PermissionsService, TypeOrmModule, PermissionsGuard],
+  exports: [PermissionsService, TypeOrmModule, PermissionsGuard, PermissionsBusinessLogic],
 })
 export class PermissionsModule {}
