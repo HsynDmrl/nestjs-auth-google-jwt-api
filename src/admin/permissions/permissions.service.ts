@@ -4,13 +4,15 @@ import { Repository, Not, IsNull, In } from 'typeorm';
 import { Permission } from 'src/entities/permission.entity';
 import { PermissionsBusinessLogic } from './permissions-business.logic';
 import { ModelMapperService } from 'src/model-mapper/model-mapper.service';
-import { CreatePermissionResponseDto } from './dto/responses/concretes/create-permission-response.dto';
-import { FindAllPermissionsResponseDto } from './dto/responses/concretes/find-all-permissions-response.dto';
-import { UpdatePermissionResponseDto } from './dto/responses/concretes/update-permission-response.dto';
+import { CreatePermissionResponseDto } from './dto/responses/concretes/operations/create-permission-response.dto';
+import { FindAllPermissionsResponseDto } from './dto/responses/concretes/operations/find-all-permissions-response.dto';
+import { UpdatePermissionResponseDto } from './dto/responses/concretes/operations/update-permission-response.dto';
 import { CreatePermissionRequestDto } from './dto/requests/concretes/create-permission-request.dto';
 import { UpdatePermissionRequestDto } from './dto/requests/concretes/update-permission-request.dto';
-import { SoftDeletePermissionResponseDto } from './dto/responses/concretes/soft-delete-permission-response.dto';
-import { RestorePermissionResponseDto } from './dto/responses/concretes/restore-permission-response.dto';
+import { SoftDeletePermissionResponseDto } from './dto/responses/concretes/status/soft-delete-permission-response.dto';
+import { RestorePermissionResponseDto } from './dto/responses/concretes/status/restore-permission-response.dto';
+import { FindByIdsPermissionsResponseDto } from './dto/responses/concretes/operations/findByIds-permissions-response.dto';
+import { GetByIdPermissionsResponseDto } from './dto/responses/concretes/operations/getById-permissions-resoonse.dto';
 
 @Injectable()
 export class PermissionsService {
@@ -21,11 +23,16 @@ export class PermissionsService {
     private readonly modelMapper: ModelMapperService,
   ) {}
 
-  async findByIds(permissionIds: string[]): Promise<FindAllPermissionsResponseDto[]> {
+  
+  async findByIds(permissionIds: string[]): Promise<FindByIdsPermissionsResponseDto[]> {
     const permissions = await this.permissionsRepository.findBy({ id: In(permissionIds) });
-    this.permissionsLogic.validatePermissionsExist(permissions, permissionIds);
-    return permissions.map(permission => this.modelMapper.mapToDto(permission, FindAllPermissionsResponseDto));
+  
+    // İş mantığı sınıfında eksik yetki ID'lerini kontrol et
+    this.permissionsLogic.validateAllPermissionsExist(permissionIds, permissions);
+  
+    return permissions;
   }
+  
 
   async findAll(page: number, limit: number): Promise<{ permissions: FindAllPermissionsResponseDto[], total: number, totalPages: number }> {
     const [permissions, total] = await this.permissionsRepository.findAndCount({
@@ -63,7 +70,7 @@ export class PermissionsService {
     return { permissions: permissionsDto, total, totalPages };
   }
 
-  async findOne(id: string): Promise<FindAllPermissionsResponseDto> {
+  async findOne(id: string): Promise<GetByIdPermissionsResponseDto> {
     const permission = await this.permissionsRepository.findOne({
       where: { id },
       withDeleted: true
@@ -72,7 +79,7 @@ export class PermissionsService {
     this.permissionsLogic.validatePermissionExists(permission, id);
   
     return {
-      ...this.modelMapper.mapToDto(permission, FindAllPermissionsResponseDto)
+      ...this.modelMapper.mapToDto(permission, GetByIdPermissionsResponseDto)
     };
   }
 

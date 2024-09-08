@@ -10,7 +10,7 @@ export class FailedLoginAttemptService {
   constructor(
     @InjectRepository(FailedLoginAttempt)
     private readonly failedLoginAttemptRepository: Repository<FailedLoginAttempt>,
-    private readonly captchaService: CaptchaService, // Captcha servisini inject ediyoruz
+    private readonly captchaService: CaptchaService,
   ) {}
 
   async logFailedAttempt(email: string, ipAddress: string): Promise<void> {

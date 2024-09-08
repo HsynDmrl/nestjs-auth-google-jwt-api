@@ -1,8 +1,24 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Permission } from 'src/entities/permission.entity';
+import { GetByIdPermissionsResponseDto } from './dto/responses/concretes/operations/getById-permissions-resoonse.dto';
 
 @Injectable()
 export class PermissionsBusinessLogic {
+
+  validateAllPermissionsExist(requestedIds: string[], foundPermissions: Permission[]): void {
+    const foundPermissionIds = foundPermissions.map(permission => permission.id);
+    const missingPermissionIds = requestedIds.filter(id => !foundPermissionIds.includes(id));
+
+    if (missingPermissionIds.length > 0) {
+      throw new NotFoundException(`Belirtilen ID'lere sahip yetkiler bulunamadı: ${missingPermissionIds.join(', ')}`);
+    }
+
+    // Tekrar eden ID'leri kontrol et
+    const duplicateIds = requestedIds.filter((id, index) => requestedIds.indexOf(id) !== index);
+    if (duplicateIds.length > 0) {
+      throw new BadRequestException(`Tekrar eden ID'ler bulundu: ${duplicateIds.join(', ')}`);
+    }
+  }
 
   validatePermissionsExist(permissions: Permission[], ids?: string[]): void {
     if (permissions.length === 0) {
@@ -25,14 +41,14 @@ export class PermissionsBusinessLogic {
     }
   }
   // Eğer zaten soft delete yapılmışsa hata fırlat
-  validateNotSoftDeleted(permission: Permission): void {
+  validateNotSoftDeleted(permission: GetByIdPermissionsResponseDto): void {
     if (permission.deletedAt) {
       throw new BadRequestException(`Yetki '${permission.name}' zaten soft delete yapılmış.`);
     }
   }
 
   // Eğer soft delete yapılmamışsa hata fırlat
-  validateSoftDeleted(permission: Permission): void {
+  validateSoftDeleted(permission: GetByIdPermissionsResponseDto): void {
     if (!permission.deletedAt) {
       throw new BadRequestException(`Yetki '${permission.name}' soft delete yapılmadığı için geri yüklenemez.`);
     }

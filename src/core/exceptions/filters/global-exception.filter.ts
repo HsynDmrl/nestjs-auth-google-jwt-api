@@ -1,35 +1,37 @@
 import {
-    ExceptionFilter,
-    Catch,
-    ArgumentsHost,
-    HttpException,
-    HttpStatus,
-  } from '@nestjs/common';
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import * as moment from 'moment';
-  
-  @Catch()
-  export class GlobalExceptionFilter implements ExceptionFilter {
-    catch(exception: unknown, host: ArgumentsHost) {
-      const ctx = host.switchToHttp();
-      const response = ctx.getResponse<Response>();
-      const request = ctx.getRequest<Request>();
-  
-      const status = exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
-  
-      const message = exception instanceof HttpException
-        ? exception.getResponse()
-        : 'Sunucu hatası';
-  
-      response.status(status).json({
-        statusCode: status,
-        timestamp: moment().format('DD-MM-YYYY HH:mm:ss'),
-        error: HttpStatus[status], 
-        path: request.url,
-        message: typeof message === 'string' ? message : message['message'],
-      });
-    }
+
+@Catch()
+export class GlobalExceptionFilter implements ExceptionFilter {
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+
+    const status = exception instanceof HttpException
+      ? exception.getStatus()
+      : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    const message = exception instanceof HttpException
+      ? exception.getResponse()
+      : (exception as any)?.message || 'Sunucu hatası';
+
+    const stack = (exception as any)?.stack;  
+
+    response.status(status).json({
+      statusCode: status,
+      timestamp: moment().format('DD-MM-YYYY HH:mm:ss'),
+      error: HttpStatus[status],
+      path: request.url,
+      message: typeof message === 'string' ? message : message['message'],
+      stack: status === HttpStatus.INTERNAL_SERVER_ERROR ? stack : undefined, 
+    });
   }
-  
+}

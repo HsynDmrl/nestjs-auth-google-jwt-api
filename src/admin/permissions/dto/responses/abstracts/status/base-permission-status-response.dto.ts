@@ -1,6 +1,6 @@
 import { Expose } from "class-transformer";
 
-export class BaseStatusResponseDto {
+export class BasePermissionStatusResponseDto {
     @Expose()
     message: string;
     @Expose()

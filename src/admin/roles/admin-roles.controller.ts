@@ -1,11 +1,18 @@
 import { Controller, Get, Query, Post, Body, Param, Delete, Put, UseGuards, UseInterceptors } from '@nestjs/common';
-import { AdminRolesService } from './admin-roles.service';
-import { Role } from 'src/entities/role.entity';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { InactiveAllRolesResponseDto } from './responses/concretes/operations/inactive-all-roles-response.dto';
+import { ActiveAllRolesResponseDto } from './responses/concretes/operations/active-all-roles-response.dto';
+import { FindAllRolesResponseDto } from './responses/concretes/operations/find-all-roles-response.dto';
+import { GetByIdRolesResponseDto } from './responses/concretes/operations/getById-roles-resoonse.dto';
+import { CreateRolesResponseDto } from './responses/concretes/operations/create-roles-response.dto';
+import { UpdateRoleResponseDto } from './responses/concretes/operations/update-role-response.dto';
+import { CreateRoleRequestDto } from './requests/concretes/create-role-request.dto';
+import { UpdateRoleRequestDto } from './requests/concretes/update-role-request.dto';
 import { Permissions } from 'src/auth/decorators/permissions/permissions.decorator';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth-guard/jwt-auth.guard';
 import { AuditLogInterceptor } from 'src/audit-log/audit-log.interceptor';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { AdminRolesService } from './admin-roles.service';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Admin-Roles')
@@ -17,33 +24,33 @@ export class AdminRolesController {
   @Get('active')
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Aktif Rolleri Getir', description: 'Soft delete yapılmamış olan tüm aktif rolleri getirir.' })
-  @ApiResponse({ status: 200, description: 'Roller başarıyla alındı.', type: [Role] })
+  @ApiResponse({ status: 200, description: 'Roller başarıyla alındı.', type: [ActiveAllRolesResponseDto] })
   findAll(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
-  ): Promise<{ roles: Role[], total: number, totalPages: number }> {
+  ): Promise<{ roles: ActiveAllRolesResponseDto[], total: number, totalPages: number }> {
     return this.adminRolesService.findAll(page, limit);
   }
 
   @Get('inactive')
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Pasif Rolleri Getir', description: 'Soft delete yapılmış olan tüm pasif rolleri getirir.' })
-  @ApiResponse({ status: 200, description: 'Pasif roller başarıyla alındı.', type: [Role] })
+  @ApiResponse({ status: 200, description: 'Pasif roller başarıyla alındı.', type: [InactiveAllRolesResponseDto] })
   findAllInactive(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
-  ): Promise<{ roles: Role[], total: number, totalPages: number }> {
+  ): Promise<{ roles: InactiveAllRolesResponseDto[], total: number, totalPages: number }> {
     return this.adminRolesService.findAllInactive(page, limit);
   }
 
   @Get('getAll')
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Tüm Rolleri Getir', description: 'Soft delete yapılmış olanlar dahil tüm rolleri getirir.' })
-  @ApiResponse({ status: 200, description: 'Roller başarıyla alındı.', type: [Role] })
+  @ApiResponse({ status: 200, description: 'Roller başarıyla alındı.', type: [FindAllRolesResponseDto] })
   findAllIncludingDeleted(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
-  ): Promise<{ roles: Role[], total: number, totalPages: number }> {
+  ): Promise<{ roles: FindAllRolesResponseDto[], total: number, totalPages: number }> {
     return this.adminRolesService.findAllIncludingDeleted(page, limit);
   }
 
@@ -51,8 +58,8 @@ export class AdminRolesController {
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Rol Detayını Getir', description: 'Belirtilen ID\'ye sahip rolü getirir.' })
   @ApiParam({ name: 'id', description: 'Rol ID\'si', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
-  @ApiResponse({ status: 200, description: 'Rol başarıyla alındı.', type: Role })
-  findOne(@Param('id') id: string): Promise<Role> {
+  @ApiResponse({ status: 200, description: 'Rol başarıyla alındı.', type: GetByIdRolesResponseDto })
+  findOne(@Param('id') id: string): Promise<GetByIdRolesResponseDto> {
     return this.adminRolesService.findOne(id);
   }
 
@@ -60,19 +67,10 @@ export class AdminRolesController {
   @UseInterceptors(AuditLogInterceptor)
   @Permissions('admin_create_role')
   @ApiOperation({ summary: 'Yeni Rol Ekle', description: 'Yeni bir rol ekler.' })
-  @ApiBody({ schema: {
-    type: 'object',
-    properties: {
-      name: { type: 'string', example: 'Admin', description: 'Rol adı' },
-      permissionIds: { type: 'array', items: { type: 'string' }, example: ['perm1', 'perm2'], description: 'İzin ID\'leri' },
-    },
-  }})
-  @ApiResponse({ status: 201, description: 'Rol başarıyla oluşturuldu.', type: Role })
-  create(
-    @Body() role: Role,
-    @Body('permissionIds') permissionIds: string[]
-  ): Promise<Role> {
-    return this.adminRolesService.create(role, permissionIds);
+  @ApiBody({ type: CreateRoleRequestDto })
+  @ApiResponse({ status: 201, description: 'Rol başarıyla oluşturuldu.', type: CreateRolesResponseDto })
+  create(@Body() createRoleDto: CreateRoleRequestDto,): Promise<CreateRolesResponseDto> {
+    return this.adminRolesService.create(createRoleDto);
   }
 
   @Put('update/:id')
@@ -80,20 +78,10 @@ export class AdminRolesController {
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Rolü Güncelle', description: 'Belirtilen ID\'ye sahip rolü günceller.' })
   @ApiParam({ name: 'id', description: 'Rol ID\'si', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
-  @ApiBody({ schema: {
-    type: 'object',
-    properties: {
-      name: { type: 'string', example: 'Admin', description: 'Rol adı' },
-      permissionIds: { type: 'array', items: { type: 'string' }, example: ['perm1', 'perm2'], description: 'İzin ID\'leri' },
-    },
-  }})
-  @ApiResponse({ status: 200, description: 'Rol başarıyla güncellendi.', type: Role })
-  update(
-    @Param('id') id: string,
-    @Body() role: Role,
-    @Body('permissionIds') permissionIds: string[]
-  ): Promise<Role> {
-    return this.adminRolesService.update(id, role, permissionIds);
+  @ApiBody({ type: UpdateRoleRequestDto })
+  @ApiResponse({ status: 200, description: 'Rol başarıyla güncellendi.', type: UpdateRoleRequestDto })
+  update(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleRequestDto): Promise<UpdateRoleResponseDto> {
+    return this.adminRolesService.update(id, updateRoleDto);
   }
 
   @Delete('soft/:id')

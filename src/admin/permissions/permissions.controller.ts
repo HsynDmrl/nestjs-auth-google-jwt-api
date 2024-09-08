@@ -1,18 +1,18 @@
 import { Controller, Get, Query, Post, Body, Param, Delete, Put, UseGuards, UseInterceptors } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
-import { CreatePermissionResponseDto } from './dto/responses/concretes/create-permission-response.dto';
-import { FindAllPermissionsResponseDto } from './dto/responses/concretes/find-all-permissions-response.dto';
+import { CreatePermissionResponseDto } from './dto/responses/concretes/operations/create-permission-response.dto';
+import { FindAllPermissionsResponseDto } from './dto/responses/concretes/operations/find-all-permissions-response.dto';
 import { Permissions } from 'src/auth/decorators/permissions/permissions.decorator';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth-guard/jwt-auth.guard';
 import { AuditLogInterceptor } from 'src/audit-log/audit-log.interceptor';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
-import { UpdatePermissionResponseDto } from './dto/responses/concretes/update-permission-response.dto';
+import { UpdatePermissionResponseDto } from './dto/responses/concretes/operations/update-permission-response.dto';
 import { CreatePermissionRequestDto } from './dto/requests/concretes/create-permission-request.dto';
 import { UpdatePermissionRequestDto } from './dto/requests/concretes/update-permission-request.dto';
-import { ActiveAllPermissionsResponseDto } from './dto/responses/concretes/active-all-permissions-response.dto';
-import { InactiveAllPermissionsResponseDto } from './dto/responses/concretes/inactive-all-permissions-response.dto';
-import { GetByIdPermissionsResponseDto } from './dto/responses/concretes/getById-permissions-resoonse.dto';
+import { ActiveAllPermissionsResponseDto } from './dto/responses/concretes/operations/active-all-permissions-response.dto';
+import { InactiveAllPermissionsResponseDto } from './dto/responses/concretes/operations/inactive-all-permissions-response.dto';
+import { GetByIdPermissionsResponseDto } from './dto/responses/concretes/operations/getById-permissions-resoonse.dto';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Admin-Permissions')

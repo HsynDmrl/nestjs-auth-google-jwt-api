@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { Permission } from "src/entities/permission.entity";
 import { Role } from "src/entities/role.entity";
+import { FindByIdsRolesResponseDto } from "./responses/concretes/operations/findByIds-roles-response.dto";
+import { GetByIdRolesResponseDto } from "./responses/concretes/operations/getById-roles-resoonse.dto";
 
 @Injectable()
 export class AdminRolesBusinessLogic {
@@ -43,15 +45,21 @@ export class AdminRolesBusinessLogic {
     return `Rol ${roleName} geri yüklendi.`;
   }
 
-  generateHardDeleteMessage(permissionName: string): string {
-    return `Yetki '${permissionName}' kalıcı olarak silindi.`;
+  generateHardDeleteMessage(roleName: string): string {
+    return `Rol '${roleName}' kalıcı olarak silindi.`;
   }
 
-  validateNotSoftDeleted(entity: any): void {
-    if (entity.deletedAt) {
-      throw new BadRequestException(`${entity.name} zaten soft delete yapılmış.`);
+  // Eğer zaten soft delete yapılmışsa hata fırlat
+  validateNotSoftDeleted(role: GetByIdRolesResponseDto): void {
+    if (role.deletedAt) {
+      throw new BadRequestException(`Rol '${role.name}' zaten soft delete yapılmış.`);
     }
   }
-  
-}
 
+  // Eğer soft delete yapılmamışsa restore edilemez
+  validateSoftDeleted(role: GetByIdRolesResponseDto): void {
+    if (!role.deletedAt) {
+      throw new BadRequestException(`Rol '${role.name}' soft delete yapılmadığı için geri yüklenemez.`);
+    }
+  }
+}
