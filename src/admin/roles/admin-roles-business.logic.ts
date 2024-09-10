@@ -3,17 +3,18 @@ import { Permission } from "src/entities/permission.entity";
 import { Role } from "src/entities/role.entity";
 import { FindByIdsRolesResponseDto } from "./responses/concretes/operations/findByIds-roles-response.dto";
 import { GetByIdRolesResponseDto } from "./responses/concretes/operations/getById-roles-resoonse.dto";
+import { FindByIdsPermissionsResponseDto } from "../permissions/dto/responses/concretes/operations/findByIds-permissions-response.dto";
 
 @Injectable()
 export class AdminRolesBusinessLogic {
 
-  validateRoleExists(role: Role | undefined, id: string): void {
+  validateRoleExists(role: GetByIdRolesResponseDto | undefined, id: string): void {
     if (!role) {
       throw new NotFoundException(`Rol ID'si ${id} olan rol bulunamadı.`);
     }
   }
 
-  validatePermissionsExist(permissions: Permission[]): void {
+  validatePermissionsExist(permissions: FindByIdsPermissionsResponseDto[]): void {
     if (permissions.length === 0) {
       throw new BadRequestException('Geçerli yetkiler bulunamadı');
     }

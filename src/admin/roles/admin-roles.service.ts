@@ -79,7 +79,7 @@ export class AdminRolesService {
     this.roleBusinessLogic.validatePermissionsExist(permissions);
 
     // DTO'yu Role entity'sine çevir ve permissions'ları ekle
-    const newRole = this.modelMapper.mapToEntity(createRoleDto, Role);
+    const newRole = this.modelMapper.mapToEntity(createRoleDto, CreateRolesResponseDto);
     newRole.permissions = permissions;
 
     // Yeni rolü kaydet
@@ -88,37 +88,44 @@ export class AdminRolesService {
   }
 
   async update(id: string, updateRoleDto: UpdateRoleRequestDto): Promise<UpdateRoleResponseDto> {
-    // Rolün var olup olmadığını kontrol et
+    // Rol adıyla daha önce oluşturulmuş bir rol olup olmadığını kontrol et
     const existingRole = await this.rolesRepository.findOne({
-      where: { id },
-      relations: ['permissions'],
-      withDeleted: true,
+      where: { name: updateRoleDto.name },
+      withDeleted: true
     });
-  
     this.roleBusinessLogic.validateRoleExists(existingRole, id);
-  
-    // Aynı ada sahip başka bir rol olup olmadığını kontrol et
+    
+    // Aynı ada sahip başka rol olup olmadığını kontrol et
     const roleWithSameName = await this.rolesRepository.findOne({
       where: { name: updateRoleDto.name, id: Not(id) },
       withDeleted: true
     });
     this.roleBusinessLogic.validateRoleNameUniqueness(roleWithSameName);
-  
-    // Yeni gelen permissionsIds'den permissions'ları al
+
+    // Mevcut rolü bul
+    const role = await this.findOne(id);
+
+    // Eğer rol soft delete yapılmışsa hata fırlat
+    this.roleBusinessLogic.validateNotSoftDeleted(role);
+
+    // Permissions'ları al
     const permissionIds = updateRoleDto.permissionsIds;
     const permissions = await this.permissionsService.findByIds(permissionIds);
     this.roleBusinessLogic.validatePermissionsExist(permissions);
-  
-    // Role'ün sadece gerekli alanlarını güncelle
-    existingRole.name = updateRoleDto.name;
-    existingRole.permissions = permissions;
-    existingRole.updatedAt = new Date();
 
-    const updatedRole = await this.rolesRepository.save(existingRole);
-  
+    // Mevcut rol entity'sini updateRoleDto ile güncelle
+    role.name = updateRoleDto.name;
+    role.permissions = permissions;
+    role.updatedAt = new Date(); // Güncelleme tarihi
+
+    // Rolü güncelle ve kaydet
+    const savedRole = await this.rolesRepository.save(role);
+
     // DTO'ya dönüştür ve geri döndür
-    return this.modelMapper.mapToDto(updatedRole, UpdateRoleResponseDto);
-  }
+    return this.modelMapper.mapToDto(savedRole, UpdateRoleResponseDto);
+}
+
+ 
   
 
   async softRemove(id: string): Promise<SoftDeleteRoleResponseDto> {

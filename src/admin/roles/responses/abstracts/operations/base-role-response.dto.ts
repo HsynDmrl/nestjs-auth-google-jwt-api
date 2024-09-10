@@ -12,6 +12,18 @@ export class BaseRoleResponseDto {
     @ApiProperty({ description: 'Rol adı', example: 'admin_update_user' })
     name: string;
 
+    @ApiProperty({ description: 'Oluşturulma tarihi', example: '01-09-2021 00:00:00' })
+    @Expose()
+    createdAt: Date;
+
+    @ApiProperty({ description: 'Güncellenme tarihi', example: '01-09-2021 00:00:00' })
+    @Expose()
+    updatedAt: Date;
+
+    @ApiProperty({ description: 'Silinme tarihi', example: '01-09-2021 00:00:00' })
+    @Expose()
+    deletedAt?: Date;
+    
     @Expose()
     @Type(() => BasePermissionResponseDto)
     @ApiProperty({
@@ -20,19 +32,4 @@ export class BaseRoleResponseDto {
         isArray: true,
     })
     permissions: BasePermissionResponseDto[];
-
-    @ApiProperty({ description: 'Oluşturulma tarihi', example: '01-09-2021 00:00:00' })
-    @Expose()
-    @Transform(({ value }) => value ? value.toISOString() : value)
-    createdAt: Date;
-
-    @ApiProperty({ description: 'Güncellenme tarihi', example: '01-09-2021 00:00:00' })
-    @Expose()
-    @Transform(({ value }) => value ? value.toISOString() : value)
-    updatedAt: Date;
-
-    @ApiProperty({ description: 'Silinme tarihi', example: '01-09-2021 00:00:00' })
-    @Expose()
-    @Transform(({ value }) => value ? value.toISOString() : value)
-    deletedAt?: Date;
 }

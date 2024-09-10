@@ -30,8 +30,12 @@ export class PermissionsService {
     // İş mantığı sınıfında eksik yetki ID'lerini kontrol et
     this.permissionsLogic.validateAllPermissionsExist(permissionIds, permissions);
   
-    return permissions;
+    // Permission entity'lerini DTO'ya dönüştür
+    const permissionsDto = permissions.map(permission => this.modelMapper.mapToDto(permission, FindByIdsPermissionsResponseDto));
+    
+    return permissionsDto;
   }
+  
   
 
   async findAll(page: number, limit: number): Promise<{ permissions: FindAllPermissionsResponseDto[], total: number, totalPages: number }> {
