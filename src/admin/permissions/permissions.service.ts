@@ -25,7 +25,9 @@ export class PermissionsService {
 
   
   async findByIds(permissionIds: string[]): Promise<FindByIdsPermissionsResponseDto[]> {
-    const permissions = await this.permissionsRepository.findBy({ id: In(permissionIds) });
+    const permissions = await this.permissionsRepository.findBy({ 
+      id: In(permissionIds) 
+    });
   
     // İş mantığı sınıfında eksik yetki ID'lerini kontrol et
     this.permissionsLogic.validateAllPermissionsExist(permissionIds, permissions);

@@ -15,6 +15,8 @@ import { ModelMapperService } from 'src/model-mapper/model-mapper.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { FindByIdsRolesResponseDto } from './responses/concretes/operations/findByIds-roles-response.dto';
 import { SoftDeleteRoleResponseDto } from './responses/concretes/status/soft-delete-role-response.dto';
+import { HardDeleteRolesResponseDto } from './responses/concretes/status/hard-delete-roles-response.dto';
+import { RestoreRoleResponseDto } from './responses/concretes/status/restore-role-response.dto';
 
 @Injectable()
 export class AdminRolesService {
@@ -26,9 +28,16 @@ export class AdminRolesService {
     private readonly modelMapper: ModelMapperService,
   ) { }
 
-  async findByIds(ids: string[]): Promise<FindByIdsRolesResponseDto[]> {
-    const roles = await this.rolesRepository.findBy({ id: In(ids) });
-    return roles.map(role => this.modelMapper.mapToDto(role, FindByIdsRolesResponseDto));
+  async findByIds(roleIds: string[]): Promise<FindByIdsRolesResponseDto[]> {
+    const roles = await this.rolesRepository.findBy({ 
+      id: In(roleIds) 
+    });
+    // iş mantığı sınıfında eksik rol ID'lerini kontrol et
+    this.roleBusinessLogic.validateAllRolesExist(roleIds, roles);
+
+    // Rol entity'lerini DTO'ya dönüştür
+    const rolesDto = roles.map(role => this.modelMapper.mapToDto(role, FindByIdsRolesResponseDto));
+    return rolesDto;
   }
 
   async findAllIncludingDeleted(page: number, limit: number): Promise<{ roles: FindAllRolesResponseDto[], total: number, totalPages: number }> {
@@ -94,39 +103,46 @@ export class AdminRolesService {
       withDeleted: true
     });
     this.roleBusinessLogic.validateRoleExists(existingRole, id);
-    
+  
     // Aynı ada sahip başka rol olup olmadığını kontrol et
     const roleWithSameName = await this.rolesRepository.findOne({
       where: { name: updateRoleDto.name, id: Not(id) },
       withDeleted: true
     });
     this.roleBusinessLogic.validateRoleNameUniqueness(roleWithSameName);
-
+  
     // Mevcut rolü bul
     const role = await this.findOne(id);
-
+  
     // Eğer rol soft delete yapılmışsa hata fırlat
     this.roleBusinessLogic.validateNotSoftDeleted(role);
-
+  
     // Permissions'ları al
-    const permissionIds = updateRoleDto.permissionsIds;
-    const permissions = await this.permissionsService.findByIds(permissionIds);
-    this.roleBusinessLogic.validatePermissionsExist(permissions);
+    if (updateRoleDto.permissionsIds) {
+      const permissions = await this.permissionsService.findByIds(updateRoleDto.permissionsIds);
+      this.roleBusinessLogic.validatePermissionsExist(permissions);
+  
+      // Eğer appendPermissions true ise mevcut izinlere ekle, değilse izinleri değiştir
+      if (updateRoleDto.appendPermissions) {
+        role.permissions = [...role.permissions, ...permissions];
+      } else {
+        role.permissions = permissions;
+      }
+    }
 
-    // Mevcut rol entity'sini updateRoleDto ile güncelle
-    role.name = updateRoleDto.name;
-    role.permissions = permissions;
-    role.updatedAt = new Date(); // Güncelleme tarihi
-
+    // Değişiklikleri uygulamak için Object.assign kullanımı
+    const updatedRole = Object.assign(role, {
+      ...(updateRoleDto.name && { name: updateRoleDto.name }),
+      updatedAt: new Date() // Güncelleme tarihi
+    });
+  
     // Rolü güncelle ve kaydet
-    const savedRole = await this.rolesRepository.save(role);
-
+    const savedRole = await this.rolesRepository.save(updatedRole);
+  
     // DTO'ya dönüştür ve geri döndür
     return this.modelMapper.mapToDto(savedRole, UpdateRoleResponseDto);
-}
+  }
 
- 
-  
 
   async softRemove(id: string): Promise<SoftDeleteRoleResponseDto> {
     const role = await this.findOne(id);
@@ -141,7 +157,7 @@ export class AdminRolesService {
     }
   }
 
-  async restore(id: string): Promise<SoftDeleteRoleResponseDto> {
+  async restore(id: string): Promise<RestoreRoleResponseDto> {
     const role = await this.findOne(id);
     
     // Eğer rol soft delete yapılmamışsa hata fırlat
@@ -154,7 +170,7 @@ export class AdminRolesService {
     }
   }
 
-  async remove(id: string): Promise<SoftDeleteRoleResponseDto> {
+  async remove(id: string): Promise<HardDeleteRolesResponseDto> {
     const role = await this.findOne(id);
     
     // Eğer rol soft delete yapılmışsa, kalıcı silme yapılamaz

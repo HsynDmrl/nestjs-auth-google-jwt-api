@@ -6,6 +6,14 @@ import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard'
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth-guard/jwt-auth.guard';
 import { AuditLogInterceptor } from 'src/audit-log/audit-log.interceptor';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import { ActiveAllAdminUsersResponseDto } from './responses/concretes/operations/active-all-admin-users-response.dto';
+import { FindAllAdminUsersResponseDto } from './responses/concretes/operations/find-all-admin-users-response.dto';
+import { InactiveAllAdminUsersResponseDto } from './responses/concretes/operations/inactive-all-admin-users-response.dto';
+import { GetByIdAdminUsersResponseDto } from './responses/concretes/operations/getById-admin-users-resoonse.dto';
+import { CreateAdminUserRequestDto } from './requests/concretes/create-admin-users-request.dto';
+import { CreateAdminUsersResponseDto } from './responses/concretes/operations/create-admin-users-response.dto';
+import { UpdateAdminUserRequestDto } from './requests/concretes/update-admin-users-request.dto';
+import { UpdateAdminUserResponseDto } from './responses/concretes/operations/update-admin-users-response.dto';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Admin-Users')
@@ -17,11 +25,11 @@ export class AdminUsersController {
   @Get('active')
   @Permissions('admin_read_users')
   @ApiOperation({ summary: 'Aktif Kullanıcıları Getir', description: 'Tüm aktif kullanıcıları getirir.' })
-  @ApiResponse({ status: 200, description: 'Kullanıcılar başarıyla alındı.', type: [User] })
+  @ApiResponse({ status: 200, description: 'Kullanıcılar başarıyla alındı.', type: [ActiveAllAdminUsersResponseDto] })
   findAll(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
-  ): Promise<{ users: User[], total: number, totalPages: number }> {
+  ): Promise<{ users: ActiveAllAdminUsersResponseDto[], total: number, totalPages: number }> {
     return this.adminUsersService.findAll(page, limit);
   }
 
@@ -32,18 +40,18 @@ export class AdminUsersController {
   findAllInactive(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
-  ): Promise<{ users: User[], total: number, totalPages: number }> {
+  ): Promise<{ users: InactiveAllAdminUsersResponseDto[], total: number, totalPages: number }> {
     return this.adminUsersService.findAllInactive(page, limit);
   }
 
   @Get('getAll')
   @Permissions('admin_read_users')
   @ApiOperation({ summary: 'Tüm Kullanıcıları Getir', description: 'Tüm kullanıcıları getirir, silinmiş kullanıcılar da dahil.' })
-  @ApiResponse({ status: 200, description: 'Tüm kullanıcılar başarıyla alındı.', type: [User] })
+  @ApiResponse({ status: 200, description: 'Tüm kullanıcılar başarıyla alındı.', type: [FindAllAdminUsersResponseDto] })
   findAllIncludingDeleted(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
-  ): Promise<{ users: User[], total: number, totalPages: number }> {
+  ): Promise<{ users: FindAllAdminUsersResponseDto[], total: number, totalPages: number }> {
     return this.adminUsersService.findAllIncludingDeleted(page, limit);
   }
 
@@ -51,8 +59,8 @@ export class AdminUsersController {
   @Permissions('admin_read_users')
   @ApiOperation({ summary: 'Kullanıcı Detayını Getir', description: 'Belirli bir kullanıcıyı getirir.' })
   @ApiParam({ name: 'id', description: 'Kullanıcı ID', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
-  @ApiResponse({ status: 200, description: 'Kullanıcı başarıyla alındı.', type: User })
-  findOne(@Param('id') id: string): Promise<User> {
+  @ApiResponse({ status: 200, description: 'Kullanıcı başarıyla alındı.', type: GetByIdAdminUsersResponseDto })
+  findOne(@Param('id') id: string): Promise<GetByIdAdminUsersResponseDto> {
     return this.adminUsersService.findOne(id);
   }
 
@@ -60,17 +68,10 @@ export class AdminUsersController {
   @Permissions('admin_create_user')
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Yeni Kullanıcı Ekle', description: 'Yeni bir kullanıcı oluşturur.' })
-  @ApiBody({ schema: {
-    type: 'object',
-    properties: {
-      user: { type: 'object', $ref: '#/components/schemas/User' },
-      roleIds: { type: 'array', items: { type: 'string' }, example: ['roleId1', 'roleId2'], description: 'Rol ID\'leri' },
-    },
-  }})
-  @ApiResponse({ status: 201, description: 'Kullanıcı başarıyla oluşturuldu.', type: User })
-  create(@Body() userDto: { user: User, roleIds: string[] }): Promise<User> {
-    const { user, roleIds } = userDto;
-    return this.adminUsersService.create(user, roleIds);
+  @ApiBody({ type: CreateAdminUserRequestDto })
+  @ApiResponse({ status: 201, description: 'Kullanıcı başarıyla oluşturuldu.', type: CreateAdminUsersResponseDto })
+  create(@Body() createAdminUserDto: CreateAdminUserRequestDto,): Promise<CreateAdminUsersResponseDto> {
+    return this.adminUsersService.create(createAdminUserDto);
   }
 
   @Put('update/:id')
@@ -78,17 +79,10 @@ export class AdminUsersController {
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Kullanıcıyı Güncelle', description: 'Belirtilen ID\'ye sahip kullanıcıyı günceller.' })
   @ApiParam({ name: 'id', description: 'Kullanıcı ID', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
-  @ApiBody({ schema: {
-    type: 'object',
-    properties: {
-      user: { type: 'object', $ref: '#/components/schemas/User' },
-      roleIds: { type: 'array', items: { type: 'string' }, example: ['roleId1', 'roleId2'], description: 'Rol ID\'leri' },
-    },
-  }})
-  @ApiResponse({ status: 200, description: 'Kullanıcı başarıyla güncellendi.', type: User })
-  update(@Param('id') id: string, @Body() userDto: { user: User, roleIds: string[] }): Promise<User> {
-    const { user, roleIds } = userDto;
-    return this.adminUsersService.update(id, user, roleIds);
+  @ApiBody({ type: UpdateAdminUserRequestDto })
+  @ApiResponse({ status: 200, description: 'Rol başarıyla güncellendi.', type: UpdateAdminUserRequestDto })
+  update(@Param('id') id: string, @Body() updateRoleDto: UpdateAdminUserRequestDto): Promise<UpdateAdminUserResponseDto> {
+    return this.adminUsersService.update(id, updateRoleDto);
   }
 
   @Delete('soft/:id')

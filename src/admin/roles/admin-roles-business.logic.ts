@@ -7,6 +7,21 @@ import { FindByIdsPermissionsResponseDto } from "../permissions/dto/responses/co
 
 @Injectable()
 export class AdminRolesBusinessLogic {
+  
+  validateAllRolesExist(requestedIds: string[], foundRoles: Role[]): void {
+    const foundRoleIds = foundRoles.map(role => role.id);
+    const missingRoleIds = requestedIds.filter(id => !foundRoleIds.includes(id));
+
+    if (missingRoleIds.length > 0) {
+      throw new NotFoundException(`Belirtilen ID'lere sahip roller bulunamadı: ${missingRoleIds.join(', ')}`);
+    }
+
+    // Tekrar eden ID'leri kontrol et
+    const duplicateIds = requestedIds.filter((id, index) => requestedIds.indexOf(id) !== index);
+    if (duplicateIds.length > 0) {
+      throw new BadRequestException(`Tekrar eden ID'ler bulundu: ${duplicateIds.join(', ')}`);
+    }
+  }
 
   validateRoleExists(role: GetByIdRolesResponseDto | undefined, id: string): void {
     if (!role) {

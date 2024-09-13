@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsString, IsUUID, IsArray, ArrayNotEmpty } from "class-validator";
 
-export class BaseRequestDto {
+export class BaseRoleRequestDto {
   @ApiProperty({ description: 'Rol adı', example: 'Admin' })
   @IsString()
   name: string;
