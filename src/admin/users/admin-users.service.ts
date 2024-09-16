@@ -14,9 +14,7 @@ import { CreateAdminUsersResponseDto } from './responses/concretes/operations/cr
 import { AdminRolesService } from '../roles/admin-roles.service';
 import { UpdateAdminUserRequestDto } from './requests/concretes/update-admin-users-request.dto';
 import { UpdateAdminUserResponseDto } from './responses/concretes/operations/update-admin-users-response.dto';
-import { SoftDeleteAdminUserResponseDto } from './responses/concretes/status/soft-delete-admin-users-response.dto';
 import { RestoreAdminUserResponseDto } from './responses/concretes/status/restore-admin-users-response.dto';
-import { HardDeleteAdminUsersResponseDto } from './responses/concretes/status/hard-delete-admin-users-response.dto';
 
 @Injectable()
 export class AdminUsersService {
@@ -180,17 +178,13 @@ export class AdminUsersService {
   }
   
   // Soft delete işlemi (Kullanıcıyı pasif yapar)
-  async softRemove(id: string): Promise<SoftDeleteAdminUserResponseDto> {
+  async softRemove(id: string): Promise<void> {
     const user = await this.findOne(id);
 
     // Eğer kullanıcı zaten soft delete yapılmışsa hata fırlat
     this.userBusinessLogic.validateNotSoftDeleted(user);
 
     await this.usersRepository.softDelete(id);
-    return {
-      message: this.userBusinessLogic.generateSoftDeleteMessage(user.name),
-      userName: user.name,
-    }    
   }
 
   // Soft delete yapılmış kullanıcıyı geri yükler
@@ -208,16 +202,12 @@ export class AdminUsersService {
   }
 
   // Kalıcı olarak siler (Hard delete)
-  async remove(id: string): Promise<HardDeleteAdminUsersResponseDto> {
+  async remove(id: string): Promise<void> {
     const user = await this.findOne(id); 
 
     // Eğer kullanıcı soft delete yapılmışsa, kalıcı silme yapılamaz
     this.userBusinessLogic.validateNotSoftDeleted(user);
 
     await this.usersRepository.delete(id);
-    return {
-      message: this.userBusinessLogic.generateHardDeleteMessage(user.name),
-      userName: user.name,
-    }
   }
 }

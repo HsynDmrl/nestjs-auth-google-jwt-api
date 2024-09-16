@@ -14,6 +14,7 @@ import { CreateAdminUserRequestDto } from './requests/concretes/create-admin-use
 import { CreateAdminUsersResponseDto } from './responses/concretes/operations/create-admin-users-response.dto';
 import { UpdateAdminUserRequestDto } from './requests/concretes/update-admin-users-request.dto';
 import { UpdateAdminUserResponseDto } from './responses/concretes/operations/update-admin-users-response.dto';
+import { RestoreAdminUserResponseDto } from './responses/concretes/status/restore-admin-users-response.dto';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Admin-Users')
@@ -97,8 +98,7 @@ export class AdminUsersController {
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Kullanıcıyı Soft Delete Yap', description: 'Belirtilen ID\'ye sahip kullanıcıyı soft delete yapar.' })
   @ApiParam({ name: 'id', description: 'Kullanıcı ID', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
-  @ApiResponse({ status: 204, description: 'Kullanıcı başarıyla pasif hale getirildi.' })
-  async softRemove(@Param('id') id: string): Promise<{ message: string }> {
+  async softRemove(@Param('id') id: string): Promise<void> {
     return this.adminUsersService.softRemove(id);
   }
 
@@ -109,7 +109,7 @@ export class AdminUsersController {
   @ApiOperation({ summary: 'Pasif Kullanıcıyı Geri Yükle', description: 'Soft delete yapılmış kullanıcıyı geri yükler.' })
   @ApiParam({ name: 'id', description: 'Kullanıcı ID', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
   @ApiResponse({ status: 200, description: 'Kullanıcı başarıyla geri yüklendi.' })
-  async restore(@Param('id') id: string): Promise<{ message: string }> {
+  async restore(@Param('id') id: string): Promise<RestoreAdminUserResponseDto> {
     return this.adminUsersService.restore(id);
   }
 
@@ -119,8 +119,7 @@ export class AdminUsersController {
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Kullanıcıyı Kalıcı Olarak Sil', description: 'Belirtilen ID\'ye sahip kullanıcıyı kalıcı olarak siler.' })
   @ApiParam({ name: 'id', description: 'Kullanıcı ID', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
-  @ApiResponse({ status: 204, description: 'Kullanıcı başarıyla kalıcı olarak silindi.' })
-  async remove(@Param('id') id: string): Promise<{ message: string }> {
+  async remove(@Param('id') id: string): Promise<void> {
     return this.adminUsersService.remove(id);
   }
 }
