@@ -9,7 +9,6 @@ import { FindAllPermissionsResponseDto } from './dto/responses/concretes/operati
 import { UpdatePermissionResponseDto } from './dto/responses/concretes/operations/update-permission-response.dto';
 import { CreatePermissionRequestDto } from './dto/requests/concretes/create-permission-request.dto';
 import { UpdatePermissionRequestDto } from './dto/requests/concretes/update-permission-request.dto';
-import { SoftDeletePermissionResponseDto } from './dto/responses/concretes/status/soft-delete-permission-response.dto';
 import { RestorePermissionResponseDto } from './dto/responses/concretes/status/restore-permission-response.dto';
 import { FindByIdsPermissionsResponseDto } from './dto/responses/concretes/operations/findByIds-permissions-response.dto';
 import { GetByIdPermissionsResponseDto } from './dto/responses/concretes/operations/getById-permissions-resoonse.dto';
@@ -118,17 +117,13 @@ export class PermissionsService {
   }
   
   
-  async softRemove(id: string): Promise<SoftDeletePermissionResponseDto> {
+  async softRemove(id: string): Promise<void> {
     const permission = await this.findOne(id);
     
     // Zaten soft delete yapılmış mı kontrol et
     this.permissionsLogic.validateNotSoftDeleted(permission);
   
     await this.permissionsRepository.softDelete(id);
-    return {
-      message: this.permissionsLogic.generateSoftDeleteMessage(permission.name),
-      permissionName: permission.name,
-    };
   }
   
   async restore(id: string): Promise<RestorePermissionResponseDto> {
@@ -144,14 +139,14 @@ export class PermissionsService {
     };
   }
   
-  async remove(id: string): Promise<{ message: string }> {
+  async remove(id: string): Promise<void>  {
     const permission = await this.findOne(id);
     this.permissionsLogic.validateNotSoftDeleted(permission);
+    
+    permission.roles = [];
+    await this.permissionsRepository.save(permission);
 
     await this.permissionsRepository.delete(id);
-    return { message: this.permissionsLogic.generateHardDeleteMessage(permission.name) };
   }
-  
-  
   
 }

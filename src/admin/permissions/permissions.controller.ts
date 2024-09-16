@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Post, Body, Param, Delete, Put, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Query, Post, Body, Param, Delete, Put, UseGuards, UseInterceptors, HttpCode } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
 import { CreatePermissionResponseDto } from './dto/responses/concretes/operations/create-permission-response.dto';
 import { FindAllPermissionsResponseDto } from './dto/responses/concretes/operations/find-all-permissions-response.dto';
@@ -13,6 +13,7 @@ import { UpdatePermissionRequestDto } from './dto/requests/concretes/update-perm
 import { ActiveAllPermissionsResponseDto } from './dto/responses/concretes/operations/active-all-permissions-response.dto';
 import { InactiveAllPermissionsResponseDto } from './dto/responses/concretes/operations/inactive-all-permissions-response.dto';
 import { GetByIdPermissionsResponseDto } from './dto/responses/concretes/operations/getById-permissions-resoonse.dto';
+import { RestorePermissionResponseDto } from './dto/responses/concretes/status/restore-permission-response.dto';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Admin-Permissions')
@@ -22,6 +23,7 @@ export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
   @Get('active')
+  @HttpCode(200)
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Aktif Yetkileri Getir', description: 'Soft delete yapılmamış olan tüm aktif yetkileri getirir.' })
   @ApiResponse({ status: 200, description: 'Yetkiler başarıyla alındı.', type: [ActiveAllPermissionsResponseDto] })
@@ -33,6 +35,7 @@ export class PermissionsController {
   }
 
   @Get('inactive')
+  @HttpCode(200)
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Pasif Yetkileri Getir', description: 'Soft delete yapılmış olan tüm pasif yetkileri getirir.' })
   @ApiResponse({ status: 200, description: 'Yetkiler başarıyla alındı.', type: [InactiveAllPermissionsResponseDto] })
@@ -44,6 +47,7 @@ export class PermissionsController {
   }
 
   @Get('getAll')
+  @HttpCode(200)
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Tüm Yetkileri Getir', description: 'Soft delete yapılmış olanlar dahil tüm yetkileri getirir.' })
   @ApiResponse({ status: 200, description: 'Yetkiler başarıyla alındı.', type: [FindAllPermissionsResponseDto] })
@@ -55,6 +59,7 @@ export class PermissionsController {
   }
 
   @Get('getById/:id')
+  @HttpCode(200) 
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Yetki Detayını Getir', description: 'Belirtilen ID\'ye sahip yetkiyi getirir.' })
   @ApiParam({ name: 'id', description: 'Yetki ID\'si', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
@@ -64,6 +69,7 @@ export class PermissionsController {
   }
 
   @Post('add')
+  @HttpCode(201)
   @UseInterceptors(AuditLogInterceptor)
   @Permissions('admin_create_role')
   @ApiOperation({ summary: 'Yeni Yetki Ekle', description: 'Yeni bir yetki ekler.' })
@@ -74,6 +80,7 @@ export class PermissionsController {
   }
 
   @Put('update/:id')
+  @HttpCode(200)
   @Permissions('admin_edit_role')
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Yetkiyi Güncelle', description: 'Belirtilen ID\'ye sahip yetkiyi günceller.' })
@@ -85,32 +92,33 @@ export class PermissionsController {
   }
 
   @Delete('soft/:id')
+  @HttpCode(204)
   @Permissions('admin_delete_role')
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Yetkiyi Soft Delete Yap', description: 'Belirtilen ID\'ye sahip yetkiyi soft delete yapar.' })
   @ApiParam({ name: 'id', description: 'Yetki ID\'si', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
-  @ApiResponse({ status: 200, description: 'Yetki başarıyla pasif hale getirildi.' })
-  softRemove(@Param('id') id: string): Promise<{ message: string }> {
-    return this.permissionsService.softRemove(id);
+  async softRemove(@Param('id') id: string): Promise<void> {
+    await this.permissionsService.softRemove(id);
   }
 
   @Put('restore/:id')
+  @HttpCode(200)
   @Permissions('admin_create_role')
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Pasif Yetkiyi Geri Yükle', description: 'Soft delete yapılmış bir yetkiyi geri yükler.' })
   @ApiParam({ name: 'id', description: 'Yetki ID\'si', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
   @ApiResponse({ status: 200, description: 'Yetki başarıyla geri yüklendi.' })
-  restore(@Param('id') id: string): Promise<{ message: string }> {
+  restore(@Param('id') id: string): Promise<RestorePermissionResponseDto> {
     return this.permissionsService.restore(id);
   }
 
   @Delete('hard/:id')
+  @HttpCode(204) 
   @Permissions('admin_delete_role')
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Yetkiyi Kalıcı Olarak Sil', description: 'Belirtilen ID\'ye sahip yetkiyi kalıcı olarak siler.' })
   @ApiParam({ name: 'id', description: 'Yetki ID\'si', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
-  @ApiResponse({ status: 200, description: 'Yetki başarıyla kalıcı olarak silindi.' })
-  remove(@Param('id') id: string): Promise<{ message: string }> {
-    return this.permissionsService.remove(id);
+  async remove(@Param('id') id: string): Promise<void> {
+    await this.permissionsService.remove(id);
   }
 }

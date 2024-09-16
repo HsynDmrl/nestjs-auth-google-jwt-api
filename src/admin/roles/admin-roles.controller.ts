@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Post, Body, Param, Delete, Put, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Query, Post, Body, Param, Delete, Put, UseGuards, UseInterceptors, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { InactiveAllRolesResponseDto } from './responses/concretes/operations/inactive-all-roles-response.dto';
 import { ActiveAllRolesResponseDto } from './responses/concretes/operations/active-all-roles-response.dto';
@@ -13,6 +13,7 @@ import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard'
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth-guard/jwt-auth.guard';
 import { AuditLogInterceptor } from 'src/audit-log/audit-log.interceptor';
 import { AdminRolesService } from './admin-roles.service';
+import { RestoreRoleResponseDto } from './responses/concretes/status/restore-role-response.dto';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Admin-Roles')
@@ -22,6 +23,7 @@ export class AdminRolesController {
   constructor(private readonly adminRolesService: AdminRolesService) {}
 
   @Get('active')
+  @HttpCode(200)
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Aktif Rolleri Getir', description: 'Soft delete yapılmamış olan tüm aktif rolleri getirir.' })
   @ApiResponse({ status: 200, description: 'Roller başarıyla alındı.', type: [ActiveAllRolesResponseDto] })
@@ -33,6 +35,7 @@ export class AdminRolesController {
   }
 
   @Get('inactive')
+  @HttpCode(200)
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Pasif Rolleri Getir', description: 'Soft delete yapılmış olan tüm pasif rolleri getirir.' })
   @ApiResponse({ status: 200, description: 'Pasif roller başarıyla alındı.', type: [InactiveAllRolesResponseDto] })
@@ -44,6 +47,7 @@ export class AdminRolesController {
   }
 
   @Get('getAll')
+  @HttpCode(200)
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Tüm Rolleri Getir', description: 'Soft delete yapılmış olanlar dahil tüm rolleri getirir.' })
   @ApiResponse({ status: 200, description: 'Roller başarıyla alındı.', type: [FindAllRolesResponseDto] })
@@ -55,6 +59,7 @@ export class AdminRolesController {
   }
 
   @Get('getById/:id')
+  @HttpCode(200)
   @Permissions('admin_read_roles')
   @ApiOperation({ summary: 'Rol Detayını Getir', description: 'Belirtilen ID\'ye sahip rolü getirir.' })
   @ApiParam({ name: 'id', description: 'Rol ID\'si', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
@@ -64,6 +69,7 @@ export class AdminRolesController {
   }
 
   @Post('add')
+  @HttpCode(201)
   @UseInterceptors(AuditLogInterceptor)
   @Permissions('admin_create_role')
   @ApiOperation({ summary: 'Yeni Rol Ekle', description: 'Yeni bir rol ekler.' })
@@ -74,6 +80,7 @@ export class AdminRolesController {
   }
 
   @Put('update/:id')
+  @HttpCode(200)
   @Permissions('admin_edit_role')
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Rolü Güncelle', description: 'Belirtilen ID\'ye sahip rolü günceller.' })
@@ -85,32 +92,35 @@ export class AdminRolesController {
   }
 
   @Delete('soft/:id')
+  @HttpCode(204)
   @Permissions('admin_delete_role')
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Rolü Soft Delete Yap', description: 'Belirtilen ID\'ye sahip rolü soft delete yapar.' })
   @ApiParam({ name: 'id', description: 'Rol ID\'si', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
-  @ApiResponse({ status: 200, description: 'Rol başarıyla pasif hale getirildi.' })
-  softRemove(@Param('id') id: string): Promise<{ message: string }> {
-    return this.adminRolesService.softRemove(id);
+  @ApiResponse({ status: 204, description: 'Rol başarıyla pasif hale getirildi.' })
+  async softRemove(@Param('id') id: string): Promise<void> {
+    await this.adminRolesService.softRemove(id);
   }
 
   @Put('restore/:id')
+  @HttpCode(200)
   @Permissions('admin_create_role')
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Pasif Rolü Geri Yükle', description: 'Soft delete yapılmış bir rolü geri yükler.' })
   @ApiParam({ name: 'id', description: 'Rol ID\'si', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
   @ApiResponse({ status: 200, description: 'Rol başarıyla geri yüklendi.' })
-  restore(@Param('id') id: string): Promise<{ message: string }> {
+  restore(@Param('id') id: string): Promise<RestoreRoleResponseDto> {
     return this.adminRolesService.restore(id);
   }
 
   @Delete('hard/:id')
+  @HttpCode(204)
   @Permissions('admin_delete_role')
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Rolü Kalıcı Olarak Sil', description: 'Belirtilen ID\'ye sahip rolü kalıcı olarak siler.' })
   @ApiParam({ name: 'id', description: 'Rol ID\'si', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
-  @ApiResponse({ status: 200, description: 'Rol başarıyla kalıcı olarak silindi.' })
-  remove(@Param('id') id: string): Promise<{ message: string }> {
-    return this.adminRolesService.remove(id);
+  @ApiResponse({ status: 204, description: 'Rol başarıyla kalıcı olarak silindi.' })
+  async remove(@Param('id') id: string): Promise<void> {
+    await this.adminRolesService.remove(id);
   }
 }

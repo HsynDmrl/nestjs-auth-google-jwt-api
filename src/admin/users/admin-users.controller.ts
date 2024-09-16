@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Post, Body, Param, Delete, Put, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Query, Post, Body, Param, Delete, Put, UseGuards, UseInterceptors, HttpCode } from '@nestjs/common';
 import { AdminUsersService } from './admin-users.service';
 import { User } from 'src/entities/user.entity';
 import { Permissions } from 'src/auth/decorators/permissions/permissions.decorator';
@@ -23,6 +23,7 @@ export class AdminUsersController {
   constructor(private readonly adminUsersService: AdminUsersService) {}
 
   @Get('active')
+  @HttpCode(200)
   @Permissions('admin_read_users')
   @ApiOperation({ summary: 'Aktif Kullanıcıları Getir', description: 'Tüm aktif kullanıcıları getirir.' })
   @ApiResponse({ status: 200, description: 'Kullanıcılar başarıyla alındı.', type: [ActiveAllAdminUsersResponseDto] })
@@ -34,6 +35,7 @@ export class AdminUsersController {
   }
 
   @Get('inactive')
+  @HttpCode(200)
   @Permissions('admin_read_users')
   @ApiOperation({ summary: 'Pasif Kullanıcıları Getir', description: 'Soft delete yapılmış tüm pasif kullanıcıları getirir.' })
   @ApiResponse({ status: 200, description: 'Pasif kullanıcılar başarıyla alındı.', type: [User] })
@@ -45,6 +47,7 @@ export class AdminUsersController {
   }
 
   @Get('getAll')
+  @HttpCode(200)
   @Permissions('admin_read_users')
   @ApiOperation({ summary: 'Tüm Kullanıcıları Getir', description: 'Tüm kullanıcıları getirir, silinmiş kullanıcılar da dahil.' })
   @ApiResponse({ status: 200, description: 'Tüm kullanıcılar başarıyla alındı.', type: [FindAllAdminUsersResponseDto] })
@@ -56,6 +59,7 @@ export class AdminUsersController {
   }
 
   @Get('getById/:id')
+  @HttpCode(200)
   @Permissions('admin_read_users')
   @ApiOperation({ summary: 'Kullanıcı Detayını Getir', description: 'Belirli bir kullanıcıyı getirir.' })
   @ApiParam({ name: 'id', description: 'Kullanıcı ID', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
@@ -65,6 +69,7 @@ export class AdminUsersController {
   }
 
   @Post('add')
+  @HttpCode(201)
   @Permissions('admin_create_user')
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Yeni Kullanıcı Ekle', description: 'Yeni bir kullanıcı oluşturur.' })
@@ -75,6 +80,7 @@ export class AdminUsersController {
   }
 
   @Put('update/:id')
+  @HttpCode(200)
   @Permissions('admin_edit_user')
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Kullanıcıyı Güncelle', description: 'Belirtilen ID\'ye sahip kullanıcıyı günceller.' })
@@ -86,16 +92,18 @@ export class AdminUsersController {
   }
 
   @Delete('soft/:id')
+  @HttpCode(204)
   @Permissions('admin_delete_user')
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Kullanıcıyı Soft Delete Yap', description: 'Belirtilen ID\'ye sahip kullanıcıyı soft delete yapar.' })
   @ApiParam({ name: 'id', description: 'Kullanıcı ID', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
-  @ApiResponse({ status: 200, description: 'Kullanıcı başarıyla pasif hale getirildi.' })
+  @ApiResponse({ status: 204, description: 'Kullanıcı başarıyla pasif hale getirildi.' })
   async softRemove(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminUsersService.softRemove(id);
   }
 
   @Put('restore/:id')
+  @HttpCode(200)
   @Permissions('admin_create_user')
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Pasif Kullanıcıyı Geri Yükle', description: 'Soft delete yapılmış kullanıcıyı geri yükler.' })
@@ -106,11 +114,12 @@ export class AdminUsersController {
   }
 
   @Delete('hard/:id')
+  @HttpCode(204)
   @Permissions('admin_delete_user')
   @UseInterceptors(AuditLogInterceptor)
   @ApiOperation({ summary: 'Kullanıcıyı Kalıcı Olarak Sil', description: 'Belirtilen ID\'ye sahip kullanıcıyı kalıcı olarak siler.' })
   @ApiParam({ name: 'id', description: 'Kullanıcı ID', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
-  @ApiResponse({ status: 200, description: 'Kullanıcı başarıyla kalıcı olarak silindi.' })
+  @ApiResponse({ status: 204, description: 'Kullanıcı başarıyla kalıcı olarak silindi.' })
   async remove(@Param('id') id: string): Promise<{ message: string }> {
     return this.adminUsersService.remove(id);
   }

@@ -1,22 +1,20 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, IsNull, In } from 'typeorm';
-import { Role } from 'src/entities/role.entity';
-import { AdminRolesBusinessLogic } from './admin-roles-business.logic';
-import { CreateRoleRequestDto } from './requests/concretes/create-role-request.dto';
-import { UpdateRoleRequestDto } from './requests/concretes/update-role-request.dto';
-import { ActiveAllRolesResponseDto } from './responses/concretes/operations/active-all-roles-response.dto';
 import { InactiveAllRolesResponseDto } from './responses/concretes/operations/inactive-all-roles-response.dto';
+import { ActiveAllRolesResponseDto } from './responses/concretes/operations/active-all-roles-response.dto';
+import { FindByIdsRolesResponseDto } from './responses/concretes/operations/findByIds-roles-response.dto';
 import { FindAllRolesResponseDto } from './responses/concretes/operations/find-all-roles-response.dto';
 import { GetByIdRolesResponseDto } from './responses/concretes/operations/getById-roles-resoonse.dto';
 import { CreateRolesResponseDto } from './responses/concretes/operations/create-roles-response.dto';
 import { UpdateRoleResponseDto } from './responses/concretes/operations/update-role-response.dto';
+import { RestoreRoleResponseDto } from './responses/concretes/status/restore-role-response.dto';
+import { CreateRoleRequestDto } from './requests/concretes/create-role-request.dto';
+import { UpdateRoleRequestDto } from './requests/concretes/update-role-request.dto';
 import { ModelMapperService } from 'src/model-mapper/model-mapper.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { FindByIdsRolesResponseDto } from './responses/concretes/operations/findByIds-roles-response.dto';
-import { SoftDeleteRoleResponseDto } from './responses/concretes/status/soft-delete-role-response.dto';
-import { HardDeleteRolesResponseDto } from './responses/concretes/status/hard-delete-roles-response.dto';
-import { RestoreRoleResponseDto } from './responses/concretes/status/restore-role-response.dto';
+import { AdminRolesBusinessLogic } from './admin-roles-business.logic';
+import { Repository, Not, IsNull, In } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Role } from 'src/entities/role.entity';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AdminRolesService {
@@ -27,6 +25,42 @@ export class AdminRolesService {
     private readonly permissionsService: PermissionsService,
     private readonly modelMapper: ModelMapperService,
   ) { }
+
+  async findAll(page: number, limit: number): Promise<{ roles: ActiveAllRolesResponseDto[], total: number, totalPages: number }> {
+    const [roles, total] = await this.rolesRepository.findAndCount({
+      relations: ['permissions'],
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    this.roleBusinessLogic.validateRolesExist(roles);
+
+    const totalPages = Math.ceil(total / limit);
+    return {
+      roles: roles.map(role => this.modelMapper.mapToDto(role, ActiveAllRolesResponseDto)),
+      total,
+      totalPages
+    };
+  }
+
+  async findAllInactive(page: number, limit: number): Promise<{ roles: InactiveAllRolesResponseDto[], total: number, totalPages: number }> {
+    const [roles, total] = await this.rolesRepository.findAndCount({
+      where: { deletedAt: Not(IsNull()) },
+      withDeleted: true,
+      relations: ['permissions'],
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    this.roleBusinessLogic.validateInactiveRolesExist(roles);
+
+    const totalPages = Math.ceil(total / limit);
+    return {
+      roles: roles.map(role => this.modelMapper.mapToDto(role, InactiveAllRolesResponseDto)),
+      total,
+      totalPages
+    };
+  }
 
   async findByIds(roleIds: string[]): Promise<FindByIdsRolesResponseDto[]> {
     const roles = await this.rolesRepository.findBy({ 
@@ -98,10 +132,7 @@ export class AdminRolesService {
 
   async update(id: string, updateRoleDto: UpdateRoleRequestDto): Promise<UpdateRoleResponseDto> {
     // Rol adıyla daha önce oluşturulmuş bir rol olup olmadığını kontrol et
-    const existingRole = await this.rolesRepository.findOne({
-      where: { name: updateRoleDto.name },
-      withDeleted: true
-    });
+    const existingRole = await this.rolesRepository.findOne({ where: { id }, withDeleted: true });
     this.roleBusinessLogic.validateRoleExists(existingRole, id);
   
     // Aynı ada sahip başka rol olup olmadığını kontrol et
@@ -144,17 +175,13 @@ export class AdminRolesService {
   }
 
 
-  async softRemove(id: string): Promise<SoftDeleteRoleResponseDto> {
+  async softRemove(id: string): Promise<void> {
     const role = await this.findOne(id);
     
     // Eğer rol zaten soft delete yapılmışsa hata fırlat
     this.roleBusinessLogic.validateNotSoftDeleted(role);
 
     await this.rolesRepository.softDelete(id);
-    return {
-      message: this.roleBusinessLogic.generateSoftDeleteMessage(role.name),
-      roleName: role.name,
-    }
   }
 
   async restore(id: string): Promise<RestoreRoleResponseDto> {
@@ -170,52 +197,14 @@ export class AdminRolesService {
     }
   }
 
-  async remove(id: string): Promise<HardDeleteRolesResponseDto> {
+  async remove(id: string): Promise<void> {
     const role = await this.findOne(id);
     
     // Eğer rol soft delete yapılmışsa, kalıcı silme yapılamaz
     this.roleBusinessLogic.validateNotSoftDeleted(role);
 
     await this.rolesRepository.delete(id);
-    return {
-      message: this.roleBusinessLogic.generateHardDeleteMessage(role.name),
-      roleName: role.name,
-    }
   }
 
-  async findAll(page: number, limit: number): Promise<{ roles: ActiveAllRolesResponseDto[], total: number, totalPages: number }> {
-    const [roles, total] = await this.rolesRepository.findAndCount({
-      relations: ['permissions'],
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-
-    this.roleBusinessLogic.validateRolesExist(roles);
-
-    const totalPages = Math.ceil(total / limit);
-    return {
-      roles: roles.map(role => this.modelMapper.mapToDto(role, ActiveAllRolesResponseDto)),
-      total,
-      totalPages
-    };
-  }
-
-  async findAllInactive(page: number, limit: number): Promise<{ roles: InactiveAllRolesResponseDto[], total: number, totalPages: number }> {
-    const [roles, total] = await this.rolesRepository.findAndCount({
-      where: { deletedAt: Not(IsNull()) },
-      withDeleted: true,
-      relations: ['permissions'],
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-
-    this.roleBusinessLogic.validateInactiveRolesExist(roles);
-
-    const totalPages = Math.ceil(total / limit);
-    return {
-      roles: roles.map(role => this.modelMapper.mapToDto(role, InactiveAllRolesResponseDto)),
-      total,
-      totalPages
-    };
-  }
+  
 }

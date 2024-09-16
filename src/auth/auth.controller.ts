@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, UseGuards, Param, Get } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, Param, Get, HttpCode } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from 'src/users/dto/create-user.dto/create-user.dto';
 import { LocalAuthGuard } from './guards/local-auth/local-auth.guard';
@@ -15,6 +15,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('login')
+  @HttpCode(200)
   @UseGuards(LocalAuthGuard)
   @ApiOperation({ summary: 'Kullanıcı Girişi', description: 'E-posta ve şifre kullanarak kullanıcı girişi yapar.' })
   @ApiBody({
@@ -35,6 +36,7 @@ export class AuthController {
   }
 
   @Post('register')
+  @HttpCode(201)
   @ApiOperation({ summary: 'Kullanıcı Kaydı', description: 'Yeni bir kullanıcı kaydı oluşturur.' })
   @ApiBody({ type: CreateUserDto })
   @ApiResponse({ status: 201, description: 'Kayıt başarılı.' })
@@ -44,6 +46,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @HttpCode(200)
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('user_refresh_token')
   @ApiOperation({ summary: 'Token Yenileme', description: 'Refresh token kullanarak access token yeniler.' })
@@ -77,6 +80,7 @@ export class AuthController {
   }
 
   @Post('change-password')
+  @HttpCode(200)
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('user_change_password')
   @ApiOperation({ summary: 'Şifre Değiştirme', description: 'Kullanıcı şifresini değiştirir.' })
@@ -93,6 +97,7 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @HttpCode(200)
   @ApiOperation({ summary: 'Şifre Sıfırlama Talebi', description: 'Kullanıcı şifresini sıfırlamak için e-posta gönderir.' })
   @ApiBody({
     schema: {
@@ -109,6 +114,7 @@ export class AuthController {
   }
 
   @Post('reset-password/:token')
+  @HttpCode(200)
   @ApiOperation({ summary: 'Şifre Sıfırlama', description: 'Şifre sıfırlama tokeni ile yeni bir şifre belirler.' })
   @ApiParam({ name: 'token', description: 'Şifre sıfırlama tokeni', example: 'resetToken123' })
   @ApiBody({
