@@ -1,6 +1,6 @@
 import { Controller, Body, Param, Delete, Put, UseGuards, Get } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto/create-user.dto';
+import { CreateUserDto } from './dto/requests/create-user.dto';
 import { Permissions } from 'src/auth/decorators/permissions/permissions.decorator';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth-guard/jwt-auth.guard';

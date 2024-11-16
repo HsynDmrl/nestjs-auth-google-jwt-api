@@ -2,19 +2,29 @@ import { Injectable, HttpException, HttpStatus, UnauthorizedException } from '@n
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
-import { CreateUserDto } from 'src/users/dto/create-user.dto/create-user.dto';
+import { CreateUserDto } from 'src/users/dto/requests/create-user.dto';
 import { Role } from 'src/entities/role.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RefreshTokenService } from './refresh-token/refresh-token.service';
 import { EmailConfirmationService } from './email-confirmation/email-confirmation.service';
 import { EmailService } from './email/email.service';
-import { ChangePasswordDto } from './dto/change-password.dto';
+import { ChangePasswordDto } from './dto/requests/change-password.dto';
 import { PasswordResetService } from './password-reset/password-reset.service';
 import { AuditLogService } from 'src/audit-log/audit-log.service';
 import { AuditLogType } from 'src/entities/audit-log.entity';
 import { FailedLoginAttemptService } from 'src/failed-login-attempt/failed-login-attempt.service';
 import { CaptchaService } from 'src/captcha/captcha.service';
+import { LoginResponseDto } from 'src/users/dto/responses/login-response.dto';
+import { RegisterResponseDto } from './dto/responses/register-response.dto';
+import { RefreshTokensResponseDto } from './dto/responses/refresh-tokens-response.dto';
+import { LoginUserDto } from 'src/users/dto/requests/login-user.dto';
+import { ConfirmEmailResponseDto } from './dto/responses/confirm-email-response.dto';
+import { ChangePasswordResponseDto } from './dto/responses/change-password-response.dto';
+import { ForgotPasswordResponseDto } from './dto/responses/forgot-password-response.dto';
+import { ResetPasswordResponseDto } from './dto/responses/reset-password-response.dto';
+import { RefreshTokenDto } from './dto/requests/refresh-token.dto';
+import { RegisterUserDto } from './dto/requests/register-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -32,8 +42,9 @@ export class AuthService {
     private readonly roleRepository: Repository<Role>,
   ) { }
 
-  async login(email: string, pass: string, ipAddress: string, captchaInput?: string, request?: any): Promise<any> {
-    const user = await this.findUserAndCheckAttempts(email, pass, ipAddress, captchaInput);
+  async login(loginRequestDto: LoginUserDto, ipAddress: string, request?: any): Promise<LoginResponseDto> {
+    const { email, password, captchaInput } = loginRequestDto;
+    const user = await this.findUserAndCheckAttempts(email, password, ipAddress, captchaInput);
     if (!user) {
       throw new UnauthorizedException('Geçersiz kimlik bilgileri');
     }
@@ -90,13 +101,14 @@ export class AuthService {
     return user;
   }
 
-  async register(createUserDto: CreateUserDto): Promise<any> {
+  async register(createUserDto: RegisterUserDto): Promise<RegisterResponseDto> {
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     const userRole = await this.roleRepository.findOne({ where: { name: 'user' } });
 
     const newUser = await this.usersService.create({
       ...createUserDto,
       password: hashedPassword,
+      emailConfirmed: false
     });
 
     newUser.roles = [userRole];
@@ -118,7 +130,7 @@ export class AuthService {
     return { message: 'Kullanıcı kaydedildi. Lütfen e-postanızı doğrulayın.' };
   }
 
-  async confirmEmail(token: string): Promise<any> {
+  async confirmEmail(token: string): Promise<ConfirmEmailResponseDto> {
     const user = await this.emailConfirmationService.confirmEmail(token);
 
     // Kullanıcının e-posta onayı yapılmış olarak işaretlenmesi
@@ -129,17 +141,21 @@ export class AuthService {
   }
 
 
-  async refreshTokens(refreshToken: string, userId: string, accessToken: string, request: any = null): Promise<any> {
+  async refreshTokens(refreshTokenDto: RefreshTokenDto, request: any): Promise<RefreshTokensResponseDto> {
+    if (!request) {
+      throw new HttpException('Geçerli bir istek objesi sağlanmadı.', HttpStatus.BAD_REQUEST);
+    }
+    //TODO BURDA KALDIM ACCESS TOKENI ESKISI DE CALISIYOR! ÇÖZ SADECE YENİSİ ÇALIŞSIN
     // Refresh token'ı doğrula
-    const validRefreshToken = await this.refreshTokenService.validateRefreshToken(refreshToken);
+    const validRefreshToken = await this.refreshTokenService.validateRefreshToken(refreshTokenDto.refreshToken);
   
-    if (!validRefreshToken || validRefreshToken.user.id !== userId) {
+    if (!validRefreshToken || validRefreshToken.user.id !== refreshTokenDto.userId) {
       throw new HttpException('Geçersiz refresh token', HttpStatus.UNAUTHORIZED);
     }
   
     // Access token'ı doğrula
     try {
-      this.jwtService.verify(accessToken, { ignoreExpiration: true });
+      this.jwtService.verify(refreshTokenDto.accessToken, { ignoreExpiration: true });
     } catch (error) {
       throw new HttpException('Geçersiz access token', HttpStatus.UNAUTHORIZED);
     }
@@ -147,7 +163,7 @@ export class AuthService {
     const user = validRefreshToken.user;
   
     // Refresh token'ı iptal et
-    await this.refreshTokenService.revokeRefreshToken(refreshToken);
+    await this.refreshTokenService.revokeRefreshToken(refreshTokenDto.refreshToken);
   
     // Yeni access token ve refresh token oluştur
     const payload = { id: user.id, email: user.email, roles: user.roles };
@@ -164,7 +180,7 @@ export class AuthService {
   }
   
 
-  async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<any> {
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<ChangePasswordResponseDto> {
     const user = await this.usersService.findOneById(userId);
 
     if (!user) {
@@ -192,7 +208,7 @@ export class AuthService {
     return { message: 'Şifre başarıyla değiştirildi' };
   }
 
-  async forgotPassword(email: string): Promise<any> {
+  async forgotPassword(email: string): Promise<ForgotPasswordResponseDto> {
     const user = await this.usersService.findOneByEmail(email);
 
     if (!user) {
@@ -215,7 +231,7 @@ export class AuthService {
     return { message: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi' };
   }
 
-  async resetPassword(token: string, newPassword: string): Promise<any> {
+  async resetPassword(token: string, newPassword: string): Promise<ResetPasswordResponseDto> {
     if (!newPassword) {
       throw new HttpException('Yeni şifre gerekli', HttpStatus.BAD_REQUEST);
     }

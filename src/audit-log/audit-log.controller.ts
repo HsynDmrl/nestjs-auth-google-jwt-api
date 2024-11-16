@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpCode, Param, UseGuards } from '@nestjs/common';
 import { AuditLogService } from './audit-log.service';
 import { AuditLog } from 'src/entities/audit-log.entity';
 import { UserActivity } from 'src/entities/user-activity.entity';
@@ -16,6 +16,7 @@ export class AuditLogController {
   constructor(private readonly auditLogService: AuditLogService) {}
 
   @Get()
+  @HttpCode(200)
   @Permissions('admin_read_users')
   @ApiOperation({ summary: 'Tüm Logları Getir', description: 'Tüm audit loglarını getirir.' })
   @ApiResponse({ status: 200, description: 'Loglar başarıyla alındı.', type: [AuditLog] })
@@ -24,6 +25,7 @@ export class AuditLogController {
   }
 
   @Get('user-activities')
+  @HttpCode(200)
   @Permissions('admin_read_users')
   @ApiOperation({ summary: 'Tüm Kullanıcı Aktivitelerini Getir', description: 'Tüm kullanıcı aktivitelerini getirir.' })
   @ApiResponse({ status: 200, description: 'Kullanıcı aktiviteleri başarıyla alındı.', type: [UserActivity] })
@@ -33,6 +35,7 @@ export class AuditLogController {
 
   @Get('user-activities/:userId')
   @UseGuards(CheckUserOrAdminGuard)
+  @HttpCode(200)
   @ApiOperation({ summary: 'Belirli Kullanıcının Aktivitelerini Getir', description: 'Belirtilen kullanıcıya ait aktiviteleri getirir.' })
   @ApiParam({ name: 'userId', description: 'Kullanıcı ID\'si', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
   @ApiResponse({ status: 200, description: 'Kullanıcı aktiviteleri başarıyla alındı.', type: [UserActivity] })
