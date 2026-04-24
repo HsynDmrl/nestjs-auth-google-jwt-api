@@ -1,19 +1,22 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { BaseRoleRequestDto } from "../abstracts/base-role-request.dto";
-import { ApiExtraModels, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { BaseRoleRequestDto } from '../abstracts/base-role-request.dto';
+import {
+  ApiExtraModels,
+  ApiProperty,
+  ApiPropertyOptional,
+} from '@nestjs/swagger';
 
 export class UpdateRoleRequestDto extends PartialType(BaseRoleRequestDto) {
+  // Rol adı
+  @ApiProperty({
+    description: 'Güncellenecek rolün adı.',
+    example: 'Admin',
+  })
+  name: string;
 
-    // Rol adı
-    @ApiProperty({
-        description: 'Güncellenecek rolün adı.',
-        example: 'Admin'
-    })
-    name: string;
-
-    // İzinleri eklemek veya değiştirmek için opsiyonel bir alan
-    @ApiPropertyOptional({
-        description: `Güncellenecek rol için izinlerin id listesi. 
+  // İzinleri eklemek veya değiştirmek için opsiyonel bir alan
+  @ApiPropertyOptional({
+    description: `Güncellenecek rol için izinlerin id listesi. 
                       - İzinleri tamamen silmek için bu alanı boş gönderin.
                       - İzinleri değiştirmek için appendPermissions false olmalıdır.
                       - Mevcut izinlere yeni izinler eklemek için appendPermissions true olmalıdır.
@@ -37,8 +40,7 @@ export class UpdateRoleRequestDto extends PartialType(BaseRoleRequestDto) {
                         "appendPermissions": false,
                         "permissionsIds": []
                       }`,
-        example: true
-    })
-    appendPermissions?: boolean;
-    
+    example: true,
+  })
+  appendPermissions?: boolean;
 }

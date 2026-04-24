@@ -38,11 +38,17 @@ import { CaptchaModule } from 'src/captcha/captcha.module';
     EmailConfirmationModule,
     AuditLogModule,
     FailedLoginAttemptModule,
-    CaptchaModule, 
+    CaptchaModule,
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy, GoogleStrategy, EmailService, PasswordResetService],
+  providers: [
+    AuthService,
+    LocalStrategy,
+    JwtStrategy,
+    GoogleStrategy,
+    EmailService,
+    PasswordResetService,
+  ],
   controllers: [AuthController, GoogleAuthController],
-  exports: [AuthService], 
+  exports: [AuthService],
 })
 export class AuthModule {}
-

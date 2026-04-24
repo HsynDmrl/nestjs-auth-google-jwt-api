@@ -1,5 +1,5 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsString, IsUUID, IsArray, ArrayNotEmpty } from "class-validator";
+import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsUUID, IsArray, ArrayNotEmpty } from 'class-validator';
 
 export class BaseRoleRequestDto {
   @ApiProperty({ description: 'Rol adı', example: 'Admin' })
@@ -8,9 +8,12 @@ export class BaseRoleRequestDto {
 
   @ApiProperty({
     description: 'Yetkinin sahip olduğu ID’ler',
-    example: ['396aa3f9-aaa1-4b26-9869-48a45e90ec81', '13816204-3860-4e28-90d5-5f8f16ba3da6'],
+    example: [
+      '396aa3f9-aaa1-4b26-9869-48a45e90ec81',
+      '13816204-3860-4e28-90d5-5f8f16ba3da6',
+    ],
     type: 'string',
-    isArray: true
+    isArray: true,
   })
   @IsArray()
   @ArrayNotEmpty()

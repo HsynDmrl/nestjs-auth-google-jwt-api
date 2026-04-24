@@ -1,4 +1,9 @@
-import { Injectable, HttpException, HttpStatus, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  HttpException,
+  HttpStatus,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
@@ -40,11 +45,20 @@ export class AuthService {
     private captchaService: CaptchaService,
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
-  ) { }
+  ) {}
 
-  async login(loginRequestDto: LoginUserDto, ipAddress: string, request?: any): Promise<LoginResponseDto> {
+  async login(
+    loginRequestDto: LoginUserDto,
+    ipAddress: string,
+    request?: any,
+  ): Promise<LoginResponseDto> {
     const { email, password, captchaInput } = loginRequestDto;
-    const user = await this.findUserAndCheckAttempts(email, password, ipAddress, captchaInput);
+    const user = await this.findUserAndCheckAttempts(
+      email,
+      password,
+      ipAddress,
+      captchaInput,
+    );
     if (!user) {
       throw new UnauthorizedException('Geçersiz kimlik bilgileri');
     }
@@ -52,10 +66,15 @@ export class AuthService {
     // Access token ve refresh token oluştur
     const payload = { id: user.id, email: user.email, roles: user.roles };
     const accessToken = this.jwtService.sign(payload);
-    const refreshToken = await this.refreshTokenService.generateRefreshToken(user);
+    const refreshToken =
+      await this.refreshTokenService.generateRefreshToken(user);
 
     // Kullanıcı aktivitesini loglama (IP adresi burada loglanıyor)
-    await this.auditLogService.logUserActivity(user, request, AuditLogType.SUCCESS);
+    await this.auditLogService.logUserActivity(
+      user,
+      request,
+      AuditLogType.SUCCESS,
+    );
 
     return {
       accessToken,
@@ -63,15 +82,29 @@ export class AuthService {
     };
   }
 
-  async findUserAndCheckAttempts(email: string, pass: string, ipAddress: string, captchaInput?: string): Promise<any> {
+  async findUserAndCheckAttempts(
+    email: string,
+    pass: string,
+    ipAddress: string,
+    captchaInput?: string,
+  ): Promise<any> {
     // Rate Limiting ve engelleme durumu kontrolü
-    const attempt = await this.failedLoginAttemptService.countFailedAttempts(email, ipAddress);
+    const attempt = await this.failedLoginAttemptService.countFailedAttempts(
+      email,
+      ipAddress,
+    );
 
     // 3 veya daha fazla başarısız giriş denemesi olduysa, Captcha zorunlu kıl
     if (attempt && attempt.attemptCount >= 3) {
-        if (!captchaInput || !this.captchaService.verifyCaptcha(captchaInput, attempt.captchaText)) {
-            throw new HttpException('Captcha doğrulaması başarısız oldu.', HttpStatus.BAD_REQUEST);
-        }
+      if (
+        !captchaInput ||
+        !this.captchaService.verifyCaptcha(captchaInput, attempt.captchaText)
+      ) {
+        throw new HttpException(
+          'Captcha doğrulaması başarısız oldu.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
     }
 
     const user = await this.usersService.findOneByEmail(email);
@@ -94,7 +127,10 @@ export class AuthService {
     if (!isPasswordMatching) {
       await this.auditLogService.logFailedLogin(user, ipAddress);
       await this.failedLoginAttemptService.logFailedAttempt(email, ipAddress);
-      throw new HttpException('Geçersiz kimlik bilgileri', HttpStatus.UNAUTHORIZED);
+      throw new HttpException(
+        'Geçersiz kimlik bilgileri',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     await this.failedLoginAttemptService.clearFailedAttempts(email, ipAddress);
@@ -103,18 +139,21 @@ export class AuthService {
 
   async register(createUserDto: RegisterUserDto): Promise<RegisterResponseDto> {
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-    const userRole = await this.roleRepository.findOne({ where: { name: 'user' } });
+    const userRole = await this.roleRepository.findOne({
+      where: { name: 'user' },
+    });
 
     const newUser = await this.usersService.create({
       ...createUserDto,
       password: hashedPassword,
-      emailConfirmed: false
+      emailConfirmed: false,
     });
 
     newUser.roles = [userRole];
     const savedUser = await this.usersService.save(newUser);
 
-    const emailConfirmation = await this.emailConfirmationService.generateConfirmation(savedUser);
+    const emailConfirmation =
+      await this.emailConfirmationService.generateConfirmation(savedUser);
 
     // Dinamik onay URL'sini oluştur
     const confirmationUrl = `${process.env.APP_URL}/auth/confirm/${emailConfirmation.token}`;
@@ -124,7 +163,7 @@ export class AuthService {
       savedUser.email,
       'E-postanızı doğrulayın',
       'welcome-message', // Şablon adını buraya ekleyin
-      { username: savedUser.name, confirmationUrl: confirmationUrl }
+      { username: savedUser.name, confirmationUrl: confirmationUrl },
     );
 
     return { message: 'Kullanıcı kaydedildi. Lütfen e-postanızı doğrulayın.' };
@@ -135,59 +174,89 @@ export class AuthService {
 
     // Kullanıcının e-posta onayı yapılmış olarak işaretlenmesi
     user.emailConfirmed = true;
-    await this.usersService.save(user);  // Burada save işlemi yapılıyor olmalı
+    await this.usersService.save(user); // Burada save işlemi yapılıyor olmalı
 
-    return { message: 'E-posta başarıyla doğrulandı. Artık giriş yapabilirsiniz.' };
+    return {
+      message: 'E-posta başarıyla doğrulandı. Artık giriş yapabilirsiniz.',
+    };
   }
 
-
-  async refreshTokens(refreshTokenDto: RefreshTokenDto, request: any): Promise<RefreshTokensResponseDto> {
+  async refreshTokens(
+    refreshTokenDto: RefreshTokenDto,
+    request: any,
+  ): Promise<RefreshTokensResponseDto> {
     if (!request) {
-      throw new HttpException('Geçerli bir istek objesi sağlanmadı.', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Geçerli bir istek objesi sağlanmadı.',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     //TODO BURDA KALDIM ACCESS TOKENI ESKISI DE CALISIYOR! ÇÖZ SADECE YENİSİ ÇALIŞSIN
     // Refresh token'ı doğrula
-    const validRefreshToken = await this.refreshTokenService.validateRefreshToken(refreshTokenDto.refreshToken);
-  
-    if (!validRefreshToken || validRefreshToken.user.id !== refreshTokenDto.userId) {
-      throw new HttpException('Geçersiz refresh token', HttpStatus.UNAUTHORIZED);
+    const validRefreshToken =
+      await this.refreshTokenService.validateRefreshToken(
+        refreshTokenDto.refreshToken,
+      );
+
+    if (
+      !validRefreshToken ||
+      validRefreshToken.user.id !== refreshTokenDto.userId
+    ) {
+      throw new HttpException(
+        'Geçersiz refresh token',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
-  
+
     // Access token'ı doğrula
     try {
-      this.jwtService.verify(refreshTokenDto.accessToken, { ignoreExpiration: true });
+      this.jwtService.verify(refreshTokenDto.accessToken, {
+        ignoreExpiration: true,
+      });
     } catch (error) {
       throw new HttpException('Geçersiz access token', HttpStatus.UNAUTHORIZED);
     }
-  
+
     const user = validRefreshToken.user;
-  
+
     // Refresh token'ı iptal et
-    await this.refreshTokenService.revokeRefreshToken(refreshTokenDto.refreshToken);
-  
+    await this.refreshTokenService.revokeRefreshToken(
+      refreshTokenDto.refreshToken,
+    );
+
     // Yeni access token ve refresh token oluştur
     const payload = { id: user.id, email: user.email, roles: user.roles };
     const newAccessToken = this.jwtService.sign(payload);
-    const newRefreshToken = await this.refreshTokenService.generateRefreshToken(user);
-  
+    const newRefreshToken =
+      await this.refreshTokenService.generateRefreshToken(user);
+
     // Kullanıcı aktivitesini loglama (IP adresi burada loglanıyor)
-    await this.auditLogService.logUserActivity(user, request, AuditLogType.SUCCESS);
-  
+    await this.auditLogService.logUserActivity(
+      user,
+      request,
+      AuditLogType.SUCCESS,
+    );
+
     return {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken.token,
     };
   }
-  
 
-  async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<ChangePasswordResponseDto> {
+  async changePassword(
+    userId: string,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<ChangePasswordResponseDto> {
     const user = await this.usersService.findOneById(userId);
 
     if (!user) {
       throw new HttpException('Kullanıcı bulunamadı', HttpStatus.NOT_FOUND);
     }
 
-    const isPasswordMatching = await bcrypt.compare(changePasswordDto.currentPassword, user.password);
+    const isPasswordMatching = await bcrypt.compare(
+      changePasswordDto.currentPassword,
+      user.password,
+    );
 
     if (!isPasswordMatching) {
       throw new HttpException('Mevcut şifre yanlış', HttpStatus.UNAUTHORIZED);
@@ -202,7 +271,7 @@ export class AuthService {
       user.email,
       'Şifre Değişikliği Bildirimi',
       'password-changed',
-      { username: user.name }
+      { username: user.name },
     );
 
     return { message: 'Şifre başarıyla değiştirildi' };
@@ -215,7 +284,8 @@ export class AuthService {
       throw new HttpException('Kullanıcı bulunamadı', HttpStatus.NOT_FOUND);
     }
 
-    const passwordReset = await this.passwordResetService.createPasswordResetToken(user);
+    const passwordReset =
+      await this.passwordResetService.createPasswordResetToken(user);
 
     // Dinamik şifre sıfırlama URL'sini oluştur
     const resetUrl = `${process.env.APP_URL}/auth/reset-password/${passwordReset.token}`;
@@ -225,21 +295,30 @@ export class AuthService {
       user.email,
       'Şifre Sıfırlama Talebi',
       'forgot-password',
-      { username: user.name, resetUrl: resetUrl }
+      { username: user.name, resetUrl: resetUrl },
     );
 
-    return { message: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi' };
+    return {
+      message: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi',
+    };
   }
 
-  async resetPassword(token: string, newPassword: string): Promise<ResetPasswordResponseDto> {
+  async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<ResetPasswordResponseDto> {
     if (!newPassword) {
       throw new HttpException('Yeni şifre gerekli', HttpStatus.BAD_REQUEST);
     }
 
-    const passwordReset = await this.passwordResetService.validateResetToken(token);
+    const passwordReset =
+      await this.passwordResetService.validateResetToken(token);
 
     if (!passwordReset || passwordReset.user === null) {
-      throw new HttpException('Geçersiz şifre sıfırlama tokenı veya kullanıcı bulunamadı', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Geçersiz şifre sıfırlama tokenı veya kullanıcı bulunamadı',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -253,7 +332,7 @@ export class AuthService {
       passwordReset.user.email,
       'Şifre Sıfırlama Onayı',
       'password-reset-confirmation',
-      { username: passwordReset.user.name }
+      { username: passwordReset.user.name },
     );
 
     return { message: 'Şifre sıfırlama başarılı' };
@@ -261,18 +340,26 @@ export class AuthService {
 
   async googleLogin(req) {
     if (!req.user || !req.user.email) {
-      throw new HttpException('Google ile giriş başarısız oldu, e-posta gerekli', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Google ile giriş başarısız oldu, e-posta gerekli',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     let user = await this.usersService.findOneByEmail(req.user.email);
 
     // Kullanıcı soft delete yapılmışsa
     if (user && user.deletedAt) {
-      throw new HttpException('Kullanıcı pasif durumda veya bulunamadı', HttpStatus.UNAUTHORIZED);
+      throw new HttpException(
+        'Kullanıcı pasif durumda veya bulunamadı',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     if (!user) {
-      const userRole = await this.roleRepository.findOne({ where: { name: 'user' } });
+      const userRole = await this.roleRepository.findOne({
+        where: { name: 'user' },
+      });
 
       const newUser = await this.usersService.create({
         email: req.user.email,

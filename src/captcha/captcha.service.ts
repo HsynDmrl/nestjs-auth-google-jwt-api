@@ -8,12 +8,12 @@ export class CaptchaService {
       size: 6, // Captcha karakter uzunluğu
       noise: 3, // Gürültü seviyesi
       color: true,
-      background: '#cc9966'
+      background: '#cc9966',
     });
 
     return {
       text: captcha.text,
-      image: captcha.data
+      image: captcha.data,
     };
   }
 

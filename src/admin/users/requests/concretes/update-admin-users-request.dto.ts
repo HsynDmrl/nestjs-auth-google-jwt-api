@@ -1,20 +1,26 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { BaseAdminUserRequestDto } from "../abstracts/base-admin-users-request.dto";
-import { ApiExtraModels, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { BaseAdminUserRequestDto } from '../abstracts/base-admin-users-request.dto';
+import {
+  ApiExtraModels,
+  ApiProperty,
+  ApiPropertyOptional,
+} from '@nestjs/swagger';
 
 @ApiExtraModels(BaseAdminUserRequestDto)
-export class UpdateAdminUserRequestDto extends PartialType(BaseAdminUserRequestDto) {
+export class UpdateAdminUserRequestDto extends PartialType(
+  BaseAdminUserRequestDto,
+) {
+  // emailConfirmed alanı
+  @ApiProperty({
+    description:
+      'Kullanıcının e-postasının onay durumu. False yaparak kullanıcıyı engelleyebilirsiniz.',
+    example: true, // Örnek değer
+  })
+  emailConfirmed: boolean;
 
-    // emailConfirmed alanı
-    @ApiProperty({
-        description: 'Kullanıcının e-postasının onay durumu. False yaparak kullanıcıyı engelleyebilirsiniz.',
-        example: true // Örnek değer
-    })
-    emailConfirmed: boolean;
-
-    // Rolleri eklemek için opsiyonel bir alan
-    @ApiPropertyOptional({
-        description: `Kullanıcının sahip olacağı rollerin id listesi. 
+  // Rolleri eklemek için opsiyonel bir alan
+  @ApiPropertyOptional({
+    description: `Kullanıcının sahip olacağı rollerin id listesi. 
                       - Rolleri tamamen silmek için bu alanı boş gönderin. 
                       - Rolleri değiştirmek için appendRoles false olmalıdır. 
                       - Mevcut rollere yeni roller eklemek için appendRoles true olmalıdır.
@@ -42,8 +48,7 @@ export class UpdateAdminUserRequestDto extends PartialType(BaseAdminUserRequestD
                         "appendRoles": false,
                         "roleIds": []
                       }`,
-        example: true
-    })
-    appendRoles?: boolean;
-    
+    example: true,
+  })
+  appendRoles?: boolean;
 }

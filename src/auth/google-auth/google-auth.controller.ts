@@ -10,16 +10,25 @@ export class GoogleAuthController {
 
   @Get()
   @UseGuards(AuthGuard('google'))
-  @ApiOperation({ summary: 'Google ile Giriş', description: 'Google kimlik doğrulamasını başlatır.' })
+  @ApiOperation({
+    summary: 'Google ile Giriş',
+    description: 'Google kimlik doğrulamasını başlatır.',
+  })
   async googleAuth(@Req() req) {
     // Bu metot sadece yönlendirmeyi başlatır
   }
 
   @Get('redirect')
   @UseGuards(AuthGuard('google'))
-  @ApiOperation({ summary: 'Google Yönlendirme', description: 'Google kimlik doğrulaması sonrası yönlendirmeyi işler.' })
+  @ApiOperation({
+    summary: 'Google Yönlendirme',
+    description: 'Google kimlik doğrulaması sonrası yönlendirmeyi işler.',
+  })
   @ApiResponse({ status: 200, description: 'Google ile giriş başarılı.' })
-  @ApiResponse({ status: 401, description: 'Google kimlik doğrulaması başarısız.' })
+  @ApiResponse({
+    status: 401,
+    description: 'Google kimlik doğrulaması başarısız.',
+  })
   async googleAuthRedirect(@Req() req) {
     return this.authService.googleLogin(req);
   }

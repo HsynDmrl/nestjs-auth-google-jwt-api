@@ -24,18 +24,21 @@ export class User extends BaseEntity {
   @JoinTable()
   roles: Role[];
 
-  @OneToMany(() => RefreshToken, refreshToken => refreshToken.user)
+  @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
   refreshTokens: RefreshToken[];
 
-  @OneToMany(() => EmailConfirmation, emailConfirmation => emailConfirmation.user)
+  @OneToMany(
+    () => EmailConfirmation,
+    (emailConfirmation) => emailConfirmation.user,
+  )
   emailConfirmations: EmailConfirmation[];
 
   @Column({ default: false })
   emailConfirmed: boolean;
 
-  @OneToMany(() => PasswordReset, passwordReset => passwordReset.user)
+  @OneToMany(() => PasswordReset, (passwordReset) => passwordReset.user)
   passwordResets: PasswordReset[];
 
-  @OneToMany(() => UserActivity, activity => activity.user) 
+  @OneToMany(() => UserActivity, (activity) => activity.user)
   activities: UserActivity[];
 }

@@ -10,7 +10,7 @@ export class PasswordReset extends BaseEntity {
   @Column({ type: 'timestamp' })
   expiresAt: Date;
 
-  @ManyToOne(() => User, user => user.passwordResets)
+  @ManyToOne(() => User, (user) => user.passwordResets)
   user: User;
 
   @Column({ default: false })

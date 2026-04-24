@@ -34,8 +34,8 @@ import { ModelMapperService } from './model-mapper/model-mapper.service';
   ],
   controllers: [AppController],
   providers: [
-    AppService, 
-    ModelMapperService, 
+    AppService,
+    ModelMapperService,
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,

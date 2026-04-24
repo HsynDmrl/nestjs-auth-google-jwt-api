@@ -9,5 +9,4 @@ export class Permission extends BaseEntity {
 
   @ManyToMany(() => Role, (role) => role.permissions)
   roles: Role[];
-
 }

@@ -7,10 +7,7 @@ import { UserActivity } from 'src/entities/user-activity.entity';
 import { UsersModule } from 'src/users/users.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([AuditLog, UserActivity]),
-    UsersModule,
-  ],
+  imports: [TypeOrmModule.forFeature([AuditLog, UserActivity]), UsersModule],
   providers: [AuditLogService],
   controllers: [AuditLogController],
   exports: [AuditLogService],

@@ -22,35 +22,55 @@ export class PermissionsService {
     private readonly modelMapper: ModelMapperService,
   ) {}
 
-  
-  async findByIds(permissionIds: string[]): Promise<FindByIdsPermissionsResponseDto[]> {
-    const permissions = await this.permissionsRepository.findBy({ 
-      id: In(permissionIds) 
+  async findByIds(
+    permissionIds: string[],
+  ): Promise<FindByIdsPermissionsResponseDto[]> {
+    const permissions = await this.permissionsRepository.findBy({
+      id: In(permissionIds),
     });
-  
+
     // İş mantığı sınıfında eksik yetki ID'lerini kontrol et
-    this.permissionsLogic.validateAllPermissionsExist(permissionIds, permissions);
-  
+    this.permissionsLogic.validateAllPermissionsExist(
+      permissionIds,
+      permissions,
+    );
+
     // Permission entity'lerini DTO'ya dönüştür
-    const permissionsDto = permissions.map(permission => this.modelMapper.mapToDto(permission, FindByIdsPermissionsResponseDto));
-    
+    const permissionsDto = permissions.map((permission) =>
+      this.modelMapper.mapToDto(permission, FindByIdsPermissionsResponseDto),
+    );
+
     return permissionsDto;
   }
-  
-  
 
-  async findAll(page: number, limit: number): Promise<{ permissions: FindAllPermissionsResponseDto[], total: number, totalPages: number }> {
+  async findAll(
+    page: number,
+    limit: number,
+  ): Promise<{
+    permissions: FindAllPermissionsResponseDto[];
+    total: number;
+    totalPages: number;
+  }> {
     const [permissions, total] = await this.permissionsRepository.findAndCount({
       skip: (page - 1) * limit,
       take: limit,
     });
     this.permissionsLogic.validatePermissionsExist(permissions);
     const totalPages = this.permissionsLogic.calculateTotalPages(total, limit);
-    const permissionsDto = permissions.map(permission => this.modelMapper.mapToDto(permission, FindAllPermissionsResponseDto));
+    const permissionsDto = permissions.map((permission) =>
+      this.modelMapper.mapToDto(permission, FindAllPermissionsResponseDto),
+    );
     return { permissions: permissionsDto, total, totalPages };
   }
 
-  async findAllIncludingDeleted(page: number, limit: number): Promise<{ permissions: FindAllPermissionsResponseDto[], total: number, totalPages: number }> {
+  async findAllIncludingDeleted(
+    page: number,
+    limit: number,
+  ): Promise<{
+    permissions: FindAllPermissionsResponseDto[];
+    total: number;
+    totalPages: number;
+  }> {
     const [permissions, total] = await this.permissionsRepository.findAndCount({
       withDeleted: true,
       skip: (page - 1) * limit,
@@ -58,11 +78,20 @@ export class PermissionsService {
     });
     this.permissionsLogic.validatePermissionsExist(permissions);
     const totalPages = this.permissionsLogic.calculateTotalPages(total, limit);
-    const permissionsDto = permissions.map(permission => this.modelMapper.mapToDto(permission, FindAllPermissionsResponseDto));
+    const permissionsDto = permissions.map((permission) =>
+      this.modelMapper.mapToDto(permission, FindAllPermissionsResponseDto),
+    );
     return { permissions: permissionsDto, total, totalPages };
   }
 
-  async findAllInactive(page: number, limit: number): Promise<{ permissions: FindAllPermissionsResponseDto[], total: number, totalPages: number }> {
+  async findAllInactive(
+    page: number,
+    limit: number,
+  ): Promise<{
+    permissions: FindAllPermissionsResponseDto[];
+    total: number;
+    totalPages: number;
+  }> {
     const [permissions, total] = await this.permissionsRepository.findAndCount({
       where: { deletedAt: Not(IsNull()) },
       withDeleted: true,
@@ -71,82 +100,103 @@ export class PermissionsService {
     });
     this.permissionsLogic.validatePermissionsExist(permissions);
     const totalPages = this.permissionsLogic.calculateTotalPages(total, limit);
-    const permissionsDto = permissions.map(permission => this.modelMapper.mapToDto(permission, FindAllPermissionsResponseDto));
+    const permissionsDto = permissions.map((permission) =>
+      this.modelMapper.mapToDto(permission, FindAllPermissionsResponseDto),
+    );
     return { permissions: permissionsDto, total, totalPages };
   }
 
   async findOne(id: string): Promise<GetByIdPermissionsResponseDto> {
     const permission = await this.permissionsRepository.findOne({
       where: { id },
-      withDeleted: true
+      withDeleted: true,
     });
-  
+
     this.permissionsLogic.validatePermissionExists(permission, id);
-  
+
     return {
-      ...this.modelMapper.mapToDto(permission, GetByIdPermissionsResponseDto)
+      ...this.modelMapper.mapToDto(permission, GetByIdPermissionsResponseDto),
     };
   }
 
-  async create(createPermissionDto: CreatePermissionRequestDto): Promise<CreatePermissionResponseDto> {
-    const existingPermission = await this.permissionsRepository.findOne({ where: { name: createPermissionDto.name }, withDeleted: true });
+  async create(
+    createPermissionDto: CreatePermissionRequestDto,
+  ): Promise<CreatePermissionResponseDto> {
+    const existingPermission = await this.permissionsRepository.findOne({
+      where: { name: createPermissionDto.name },
+      withDeleted: true,
+    });
     this.permissionsLogic.validatePermissionNameUniqueness(existingPermission);
 
-    const permission = this.modelMapper.mapToEntity(createPermissionDto, Permission);
+    const permission = this.modelMapper.mapToEntity(
+      createPermissionDto,
+      Permission,
+    );
     const savedPermission = await this.permissionsRepository.save(permission);
-    return this.modelMapper.mapToDto(savedPermission, CreatePermissionResponseDto);
+    return this.modelMapper.mapToDto(
+      savedPermission,
+      CreatePermissionResponseDto,
+    );
   }
 
-  async update(id: string, updatePermissionDto: UpdatePermissionRequestDto): Promise<UpdatePermissionResponseDto> {
+  async update(
+    id: string,
+    updatePermissionDto: UpdatePermissionRequestDto,
+  ): Promise<UpdatePermissionResponseDto> {
     // Var olan yetkiyi bul
     const existingPermission = await this.permissionsRepository.findOne({
-      where: { id }
+      where: { id },
     });
-  
+
     // Eğer var olan bir yetki yoksa, NotFoundException fırlat
     this.permissionsLogic.validatePermissionExists(existingPermission, id);
-  
+
     // Var olan yetkinin sadece güncellenen alanlarını değiştirmek için Object.assign
-    const updatedPermission = Object.assign(existingPermission, updatePermissionDto);
-  
+    const updatedPermission = Object.assign(
+      existingPermission,
+      updatePermissionDto,
+    );
+
     // Güncellenen yetkiyi kaydet
-    const savedPermission = await this.permissionsRepository.save(updatedPermission);
-  
+    const savedPermission =
+      await this.permissionsRepository.save(updatedPermission);
+
     // Kaydedilen yetkiyi DTO'ya dönüştürüp döndür
-    return this.modelMapper.mapToDto(savedPermission, UpdatePermissionResponseDto);
+    return this.modelMapper.mapToDto(
+      savedPermission,
+      UpdatePermissionResponseDto,
+    );
   }
-  
-  
+
   async softRemove(id: string): Promise<void> {
     const permission = await this.findOne(id);
-    
+
     // Zaten soft delete yapılmış mı kontrol et
     this.permissionsLogic.validateNotSoftDeleted(permission);
-  
+
     await this.permissionsRepository.softDelete(id);
   }
-  
+
   async restore(id: string): Promise<RestorePermissionResponseDto> {
     const permission = await this.findOne(id);
-  
+
     // Sadece soft delete yapılmış yetkileri geri yükle
     this.permissionsLogic.validateSoftDeleted(permission);
-  
+
     await this.permissionsRepository.restore(id);
     return {
       message: this.permissionsLogic.generateRestoreMessage(permission.name),
       permissionName: permission.name,
     };
   }
-  
-  async remove(id: string): Promise<void>  {
+
+  async remove(id: string): Promise<void> {
     const permission = await this.findOne(id);
     this.permissionsLogic.validateNotSoftDeleted(permission);
-    
+
     permission.roles = [];
     await this.permissionsRepository.save(permission);
 
     await this.permissionsRepository.delete(id);
   }
-  
 }

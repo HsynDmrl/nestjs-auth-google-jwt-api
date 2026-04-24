@@ -27,7 +27,14 @@ export class AdminUsersService {
   ) {}
 
   // Tüm kullanıcıları getirir (Soft delete yapılmamış olanlar)
-  async findAll(page: number, limit: number): Promise<{ users: ActiveAllAdminUsersResponseDto[], total: number, totalPages: number }> {
+  async findAll(
+    page: number,
+    limit: number,
+  ): Promise<{
+    users: ActiveAllAdminUsersResponseDto[];
+    total: number;
+    totalPages: number;
+  }> {
     const [users, total] = await this.usersRepository.findAndCount({
       relations: ['roles'],
       skip: (page - 1) * limit,
@@ -36,14 +43,24 @@ export class AdminUsersService {
     this.userBusinessLogic.validateUsersExist(users);
 
     const totalPages = Math.ceil(total / limit);
-    return { users: users.map(user => this.modelMapper.mapToDto(user, ActiveAllAdminUsersResponseDto)),
+    return {
+      users: users.map((user) =>
+        this.modelMapper.mapToDto(user, ActiveAllAdminUsersResponseDto),
+      ),
       total,
-      totalPages 
+      totalPages,
     };
   }
 
   // Tüm kullanıcıları getirir (Soft delete yapılmış olanlar dahil)
-  async findAllIncludingDeleted(page: number, limit: number): Promise<{ users: FindAllAdminUsersResponseDto[], total: number, totalPages: number }> {
+  async findAllIncludingDeleted(
+    page: number,
+    limit: number,
+  ): Promise<{
+    users: FindAllAdminUsersResponseDto[];
+    total: number;
+    totalPages: number;
+  }> {
     const [users, total] = await this.usersRepository.findAndCount({
       withDeleted: true,
       relations: ['roles'],
@@ -53,14 +70,24 @@ export class AdminUsersService {
     this.userBusinessLogic.validateUsersExist(users);
 
     const totalPages = Math.ceil(total / limit);
-    return { users: users.map(user => this.modelMapper.mapToDto(user, FindAllAdminUsersResponseDto)),
+    return {
+      users: users.map((user) =>
+        this.modelMapper.mapToDto(user, FindAllAdminUsersResponseDto),
+      ),
       total,
-      totalPages 
+      totalPages,
     };
   }
 
   // Soft delete yapılmış kullanıcıları getirir (deletedAt sütunu dolu olanlar)
-  async findAllInactive(page: number, limit: number): Promise<{ users: InactiveAllAdminUsersResponseDto[], total: number, totalPages: number }> {
+  async findAllInactive(
+    page: number,
+    limit: number,
+  ): Promise<{
+    users: InactiveAllAdminUsersResponseDto[];
+    total: number;
+    totalPages: number;
+  }> {
     const [users, total] = await this.usersRepository.findAndCount({
       where: {
         deletedAt: Not(IsNull()),
@@ -74,9 +101,12 @@ export class AdminUsersService {
     this.userBusinessLogic.validateInactiveUsersExist(users);
 
     const totalPages = Math.ceil(total / limit);
-    return { users: users.map(user => this.modelMapper.mapToDto(user, InactiveAllAdminUsersResponseDto)),
+    return {
+      users: users.map((user) =>
+        this.modelMapper.mapToDto(user, InactiveAllAdminUsersResponseDto),
+      ),
       total,
-      totalPages 
+      totalPages,
     };
   }
 
@@ -90,18 +120,19 @@ export class AdminUsersService {
 
     this.userBusinessLogic.validateUserExists(user, id);
 
-
-    return { 
-      ...this.modelMapper.mapToDto(user, GetByIdAdminUsersResponseDto) 
+    return {
+      ...this.modelMapper.mapToDto(user, GetByIdAdminUsersResponseDto),
     };
   }
 
   // Yeni bir kullanıcı oluşturur
-  async create(createAdminUserDto: CreateAdminUserRequestDto): Promise<CreateAdminUsersResponseDto> {
+  async create(
+    createAdminUserDto: CreateAdminUserRequestDto,
+  ): Promise<CreateAdminUsersResponseDto> {
     // Business Logic: Check if the user with the same email already exists
-    const existingUser = await this.usersRepository.findOne({ 
-      where: { email: createAdminUserDto.email }, 
-      withDeleted: true 
+    const existingUser = await this.usersRepository.findOne({
+      where: { email: createAdminUserDto.email },
+      withDeleted: true,
     });
     this.userBusinessLogic.validateUserNamesUniqueness(existingUser);
 
@@ -110,29 +141,37 @@ export class AdminUsersService {
     const roles = await this.rolesService.findByIds(rolesIds);
     this.userBusinessLogic.validateRolesExist(roles);
 
-    
     // Şifreyi hashleme
     if (createAdminUserDto.password) {
-      createAdminUserDto.password = await bcrypt.hash(createAdminUserDto.password, 10);
+      createAdminUserDto.password = await bcrypt.hash(
+        createAdminUserDto.password,
+        10,
+      );
     }
-    
+
     // DTO'yu User Entity çevir ve role'leri ekle
-    const newUser = this.modelMapper.mapToEntity(createAdminUserDto, CreateAdminUsersResponseDto);
+    const newUser = this.modelMapper.mapToEntity(
+      createAdminUserDto,
+      CreateAdminUsersResponseDto,
+    );
     newUser.roles = roles;
-    
+
     // Yeni kullanıcıyı kaydet
     const createdUser = await this.usersRepository.save(newUser);
     return this.modelMapper.mapToDto(createdUser, CreateAdminUsersResponseDto);
   }
 
   // Belirli bir kullanıcıyı günceller
-  async update(id: string, updateAdminUserDto: UpdateAdminUserRequestDto): Promise<UpdateAdminUserResponseDto> {
+  async update(
+    id: string,
+    updateAdminUserDto: UpdateAdminUserRequestDto,
+  ): Promise<UpdateAdminUserResponseDto> {
     // Mevcut kullanıcıyı bul
     const existingUser = await this.findOne(id);
-  
+
     // Kullanıcının var olduğunu doğrula
     this.userBusinessLogic.validateUserExists(existingUser, id);
-  
+
     // Aynı ada sahip başka user olup olmadığını kontrol et
     if (updateAdminUserDto.name) {
       const userWithSameName = await this.usersRepository.findOne({
@@ -141,12 +180,14 @@ export class AdminUsersService {
       });
       this.userBusinessLogic.validateUserNamesUniqueness(userWithSameName);
     }
-  
+
     // Rolleri güncellemeden önce kontrol et
     if (updateAdminUserDto.roleIds) {
-      const roles = await this.rolesService.findByIds(updateAdminUserDto.roleIds);
+      const roles = await this.rolesService.findByIds(
+        updateAdminUserDto.roleIds,
+      );
       //this.userBusinessLogic.validateRolesExist(roles);
-      
+
       // Eğer appendRoles true ise mevcut rollere ekle, değilse rolleri değiştir
       if (updateAdminUserDto.appendRoles) {
         existingUser.roles = [...existingUser.roles, ...roles];
@@ -154,29 +195,33 @@ export class AdminUsersService {
         existingUser.roles = roles;
       }
     }
-  
+
     // Değişiklikleri uygulamak için Object.assign kullanımı
     const updatedUser = Object.assign(existingUser, {
       ...(updateAdminUserDto.name && { name: updateAdminUserDto.name }),
-      ...(updateAdminUserDto.surname && { surname: updateAdminUserDto.surname }),
+      ...(updateAdminUserDto.surname && {
+        surname: updateAdminUserDto.surname,
+      }),
       ...(updateAdminUserDto.email && { email: updateAdminUserDto.email }),
-      ...(updateAdminUserDto.emailConfirmed !== undefined && { emailConfirmed: updateAdminUserDto.emailConfirmed }),
+      ...(updateAdminUserDto.emailConfirmed !== undefined && {
+        emailConfirmed: updateAdminUserDto.emailConfirmed,
+      }),
     });
-  
+
     // Şifreyi günceller ve hashler, eğer şifre gönderilmişse
     if (updateAdminUserDto.password) {
       updatedUser.password = await bcrypt.hash(updateAdminUserDto.password, 10);
     }
-  
+
     updatedUser.updatedAt = new Date();
-  
+
     // Kullanıcıyı güncelle ve kaydet
     const savedUser = await this.usersRepository.save(updatedUser);
-  
+
     // DTO'ya çevir ve geri dön
     return this.modelMapper.mapToDto(savedUser, UpdateAdminUserResponseDto);
   }
-  
+
   // Soft delete işlemi (Kullanıcıyı pasif yapar)
   async softRemove(id: string): Promise<void> {
     const user = await this.findOne(id);
@@ -193,17 +238,17 @@ export class AdminUsersService {
 
     // Eğer kullanıcı soft delete yapılmamışsa hata fırlat
     this.userBusinessLogic.validateSoftDeleted(user);
-    
+
     await this.usersRepository.restore(id);
     return {
       message: this.userBusinessLogic.generateRestoreMessage(user.name),
       userName: user.name,
-    }
+    };
   }
 
   // Kalıcı olarak siler (Hard delete)
   async remove(id: string): Promise<void> {
-    const user = await this.findOne(id); 
+    const user = await this.findOne(id);
 
     // Eğer kullanıcı soft delete yapılmışsa, kalıcı silme yapılamaz
     this.userBusinessLogic.validateNotSoftDeleted(user);

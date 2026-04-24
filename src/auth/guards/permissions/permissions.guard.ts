@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -13,7 +19,10 @@ export class PermissionsGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredPermissions = this.reflector.get<string[]>('permissions', context.getHandler());
+    const requiredPermissions = this.reflector.get<string[]>(
+      'permissions',
+      context.getHandler(),
+    );
 
     if (!requiredPermissions || requiredPermissions.length === 0) {
       return true;
@@ -43,7 +52,9 @@ export class PermissionsGuard implements CanActivate {
     });
 
     // İzin kontrolü yapıyoruz
-    const hasPermission = requiredPermissions.every(permission => userPermissions.has(permission));
+    const hasPermission = requiredPermissions.every((permission) =>
+      userPermissions.has(permission),
+    );
 
     if (!hasPermission) {
       // Kullanıcının kendi kaydına erişmeye çalışıp çalışmadığını kontrol ediyoruz
@@ -53,7 +64,9 @@ export class PermissionsGuard implements CanActivate {
         return true; // Kullanıcı kendi kaydına erişmeye çalışıyorsa izin veriyoruz
       }
 
-      throw new ForbiddenException('Bu işlemi gerçekleştirmek için gerekli izinlere sahip değilsiniz.');
+      throw new ForbiddenException(
+        'Bu işlemi gerçekleştirmek için gerekli izinlere sahip değilsiniz.',
+      );
     }
 
     return true;

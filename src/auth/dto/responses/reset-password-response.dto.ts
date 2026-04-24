@@ -1,4 +1,3 @@
 export class ResetPasswordResponseDto {
-    readonly message: string;
-  }
-  
+  readonly message: string;
+}

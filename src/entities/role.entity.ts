@@ -8,12 +8,17 @@ export class Role extends BaseEntity {
   @Column({ unique: true })
   name: string;
 
-  @ManyToMany(() => User, user => user.roles, { cascade: true, onDelete: 'CASCADE' })
+  @ManyToMany(() => User, (user) => user.roles, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   @JoinTable()
   users: User[];
 
-
-  @ManyToMany(() => Permission, (permission) => permission.roles, { cascade: true, onDelete: 'CASCADE' })
+  @ManyToMany(() => Permission, (permission) => permission.roles, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   @JoinTable()
   permissions: Permission[];
 }

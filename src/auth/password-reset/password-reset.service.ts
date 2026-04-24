@@ -37,7 +37,9 @@ export class PasswordResetService {
   }
 
   async markTokenAsUsed(token: string): Promise<void> {
-    const passwordReset = await this.passwordResetRepository.findOne({ where: { token } });
+    const passwordReset = await this.passwordResetRepository.findOne({
+      where: { token },
+    });
 
     if (passwordReset) {
       passwordReset.used = true;

@@ -15,15 +15,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const status = exception instanceof HttpException
-      ? exception.getStatus()
-      : HttpStatus.INTERNAL_SERVER_ERROR;
+    const status =
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const message = exception instanceof HttpException
-      ? exception.getResponse()
-      : (exception as any)?.message || 'Sunucu hatası';
+    const message =
+      exception instanceof HttpException
+        ? exception.getResponse()
+        : (exception as any)?.message || 'Sunucu hatası';
 
-    const stack = (exception as any)?.stack;  
+    const stack = (exception as any)?.stack;
 
     response.status(status).json({
       statusCode: status,
@@ -31,7 +33,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       error: HttpStatus[status],
       path: request.url,
       message: typeof message === 'string' ? message : message['message'],
-      stack: status === HttpStatus.INTERNAL_SERVER_ERROR ? stack : undefined, 
+      stack: status === HttpStatus.INTERNAL_SERVER_ERROR ? stack : undefined,
     });
   }
 }

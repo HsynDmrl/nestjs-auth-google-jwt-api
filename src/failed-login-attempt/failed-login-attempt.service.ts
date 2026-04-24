@@ -15,25 +15,25 @@ export class FailedLoginAttemptService {
 
   async logFailedAttempt(email: string, ipAddress: string): Promise<void> {
     let attempt = await this.failedLoginAttemptRepository.findOne({
-        where: { email, ipAddress },
+      where: { email, ipAddress },
     });
 
     if (attempt) {
-        attempt.attemptCount += 1;
+      attempt.attemptCount += 1;
     } else {
-        attempt = this.failedLoginAttemptRepository.create({
-            email,
-            ipAddress,
-            attemptCount: 1,
-            lockedUntil: null,
-        });
+      attempt = this.failedLoginAttemptRepository.create({
+        email,
+        ipAddress,
+        attemptCount: 1,
+        lockedUntil: null,
+      });
     }
 
     // Eğer 3 veya 4 başarısız deneme varsa captcha zorunlu hale gelir
     if (attempt.attemptCount === 3 || attempt.attemptCount === 4) {
-        const captcha = this.captchaService.generateCaptcha();
-        attempt.captchaText = captcha.text;
-        console.log('Yeni captchaText:', captcha.text);
+      const captcha = this.captchaService.generateCaptcha();
+      attempt.captchaText = captcha.text;
+      console.log('Yeni captchaText:', captcha.text);
     }
 
     //console.log('Güncellenen attempt:', attempt);
@@ -42,21 +42,30 @@ export class FailedLoginAttemptService {
     attempt.lockedUntil = this.calculateLockoutTime(attempt.attemptCount);
 
     await this.failedLoginAttemptRepository.save(attempt);
-}
+  }
 
-
-  async countFailedAttempts(email: string, ipAddress: string): Promise<FailedLoginAttempt | undefined> {
+  async countFailedAttempts(
+    email: string,
+    ipAddress: string,
+  ): Promise<FailedLoginAttempt | undefined> {
     const attempt = await this.failedLoginAttemptRepository.findOne({
       where: { email, ipAddress },
     });
 
     if (attempt && attempt.lockedUntil && attempt.lockedUntil > new Date()) {
-      const timeRemainingInSeconds = moment(attempt.lockedUntil).diff(moment(), 'seconds');
-      const timeRemainingText = timeRemainingInSeconds > 60 
-        ? `${Math.ceil(timeRemainingInSeconds / 60)} dakika`
-        : `${timeRemainingInSeconds} saniye`;
+      const timeRemainingInSeconds = moment(attempt.lockedUntil).diff(
+        moment(),
+        'seconds',
+      );
+      const timeRemainingText =
+        timeRemainingInSeconds > 60
+          ? `${Math.ceil(timeRemainingInSeconds / 60)} dakika`
+          : `${timeRemainingInSeconds} saniye`;
 
-      throw new HttpException(`Çok fazla başarısız giriş denemesi. Lütfen ${timeRemainingText} sonra tekrar deneyin.`, HttpStatus.TOO_MANY_REQUESTS);
+      throw new HttpException(
+        `Çok fazla başarısız giriş denemesi. Lütfen ${timeRemainingText} sonra tekrar deneyin.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
     if (attempt && attempt.lockedUntil && attempt.lockedUntil <= new Date()) {
@@ -85,7 +94,12 @@ export class FailedLoginAttemptService {
     }
 
     // Sadece 5, 10, 15 ve 20. denemelerde süreyi güncelle
-    if (attemptCount === 5 || attemptCount === 10 || attemptCount === 15 || attemptCount === 20) {
+    if (
+      attemptCount === 5 ||
+      attemptCount === 10 ||
+      attemptCount === 15 ||
+      attemptCount === 20
+    ) {
       return moment().add(lockoutDuration, 'minutes').toDate();
     }
 

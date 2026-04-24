@@ -16,7 +16,12 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
   async validate(req: any, email: string, password: string): Promise<any> {
     const ipAddress = requestIp.getClientIp(req);
     const captchaInput = req.body.captchaInput;
-    const user = await this.authService.findUserAndCheckAttempts(email, password, ipAddress, captchaInput);
+    const user = await this.authService.findUserAndCheckAttempts(
+      email,
+      password,
+      ipAddress,
+      captchaInput,
+    );
     if (!user) {
       throw new UnauthorizedException();
     }

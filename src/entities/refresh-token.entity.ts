@@ -10,6 +10,6 @@ export class RefreshToken extends BaseEntity {
   @Column({ type: 'timestamp' })
   expiresAt: Date;
 
-  @ManyToOne(() => User, user => user.refreshTokens)
+  @ManyToOne(() => User, (user) => user.refreshTokens)
   user: User;
 }

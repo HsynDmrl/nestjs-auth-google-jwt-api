@@ -11,13 +11,18 @@ import { ModelMapperModule } from 'src/model-mapper/model-mapper.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Permission]), 
-    ModelMapperModule, 
-    AuditLogModule, 
+    TypeOrmModule.forFeature([Permission]),
+    ModelMapperModule,
+    AuditLogModule,
     UsersModule,
   ],
   providers: [PermissionsService, PermissionsGuard, PermissionsBusinessLogic],
   controllers: [PermissionsController],
-  exports: [PermissionsService, TypeOrmModule, PermissionsGuard, PermissionsBusinessLogic],
+  exports: [
+    PermissionsService,
+    TypeOrmModule,
+    PermissionsGuard,
+    PermissionsBusinessLogic,
+  ],
 })
 export class PermissionsModule {}

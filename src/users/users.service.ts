@@ -22,7 +22,7 @@ export class UsersService {
     const user = this.usersRepository.create(createUserDto);
     return this.usersRepository.save(user);
   }
-  
+
   async update(id: string, updateUserDto: CreateUserDto): Promise<User> {
     await this.usersRepository.update(id, updateUserDto);
     return this.findOneById(id);
@@ -35,12 +35,19 @@ export class UsersService {
   async findOneByEmail(email: string): Promise<User | undefined> {
     return this.usersRepository.findOne({
       where: { email },
-      select: ['id', 'name', 'email', 'password', 'deletedAt', 'emailConfirmed'],
+      select: [
+        'id',
+        'name',
+        'email',
+        'password',
+        'deletedAt',
+        'emailConfirmed',
+      ],
       relations: ['roles'],
       withDeleted: true,
     });
   }
-  
+
   async save(user: User): Promise<User> {
     return this.usersRepository.save(user);
   }

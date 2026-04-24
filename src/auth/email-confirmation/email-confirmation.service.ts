@@ -29,7 +29,11 @@ export class EmailConfirmationService {
       relations: ['user'],
     });
 
-    if (!emailConfirmation || emailConfirmation.expiresAt < new Date() || emailConfirmation.isConfirmed) {
+    if (
+      !emailConfirmation ||
+      emailConfirmation.expiresAt < new Date() ||
+      emailConfirmation.isConfirmed
+    ) {
       throw new Error('Invalid or expired confirmation token');
     }
 

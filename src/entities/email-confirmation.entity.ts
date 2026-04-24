@@ -10,7 +10,7 @@ export class EmailConfirmation extends BaseEntity {
   @Column({ type: 'timestamp' })
   expiresAt: Date;
 
-  @ManyToOne(() => User, user => user.emailConfirmations)
+  @ManyToOne(() => User, (user) => user.emailConfirmations)
   user: User;
 
   @Column({ default: false })

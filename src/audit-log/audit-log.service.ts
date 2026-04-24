@@ -15,11 +15,11 @@ export class AuditLogService {
     @InjectRepository(UserActivity)
     private userActivityRepository: Repository<UserActivity>,
   ) {}
-  
+
   async findAll(): Promise<AuditLog[]> {
     return this.auditLogRepository.find();
   }
-  
+
   async createLog(
     action: string,
     entity: string,
@@ -40,8 +40,12 @@ export class AuditLogService {
     });
     return this.auditLogRepository.save(auditLog);
   }
-  
-  async logUserActivity(user: User, request: any, type: AuditLogType): Promise<UserActivity> {
+
+  async logUserActivity(
+    user: User,
+    request: any,
+    type: AuditLogType,
+  ): Promise<UserActivity> {
     const clientIp = requestIp.getClientIp(request); // IP adresini al
     const geo = geoip.lookup(clientIp); // GeoIP ile ülke ve şehir bilgilerini al
 
@@ -56,18 +60,17 @@ export class AuditLogService {
 
     return this.userActivityRepository.save(userActivity);
   }
-  
-  async findAllUserActivities(): Promise<UserActivity[]> {
-    return this.userActivityRepository.find({ 
-        relations: ['user'] // Kullanıcı ilişkisini dahil et
-    });
-}
 
+  async findAllUserActivities(): Promise<UserActivity[]> {
+    return this.userActivityRepository.find({
+      relations: ['user'], // Kullanıcı ilişkisini dahil et
+    });
+  }
 
   async findUserActivitiesByUserId(userId: string): Promise<UserActivity[]> {
     return this.userActivityRepository.find({
-        where: { user: { id: userId } },  // Sadece JWT'den alınan kimlik kullanılır
-        relations: ['user'],
+      where: { user: { id: userId } }, // Sadece JWT'den alınan kimlik kullanılır
+      relations: ['user'],
     });
   }
 
@@ -86,6 +89,5 @@ export class AuditLogService {
 
     // createdAt otomatik olarak kaydedilecektir
     return this.userActivityRepository.save(failedLogin);
-}
-
+  }
 }
