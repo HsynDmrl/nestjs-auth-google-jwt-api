@@ -1,6 +1,6 @@
 ## Project Description
 
-This project is a comprehensive application built with MySQL database integration, featuring robust authentication and authorization capabilities. It includes both email-based and Google OAuth2.0 login/registration processes, JWT-based authentication with refresh tokens, role-based access control, and user management functionalities.
+This project is a comprehensive application built with PostgreSQL database integration, featuring robust authentication and authorization capabilities. It includes both email-based and Google OAuth2.0 login/registration processes, JWT-based authentication with refresh tokens, role-based access control, and user management functionalities.
 
 ### Key Features
 
@@ -20,7 +20,7 @@ This project is a comprehensive application built with MySQL database integratio
   - Automated email notifications are sent during user registration, forgot password, and change password actions.
 
 - **Database**:
-  - Data is stored in a MySQL database.
+  - Data is stored in a PostgreSQL database.
 
 ## Project Setup
 
@@ -32,10 +32,11 @@ Create a `.env` file in the root directory of your project with the following co
 
 ```env
 DB_HOST=your-database-host
-DB_PORT=your-database-port
+DB_PORT=5432
 DB_USERNAME=your-database-username
 DB_PASSWORD=your-database-password
 DB_DATABASE=your-database-name
+DB_DROP_SCHEMA=false
 JWT_SECRET=your-jwt-secret-key
 EMAIL_HOST=your-email-smtp-host
 EMAIL_PORT=your-email-smtp-port

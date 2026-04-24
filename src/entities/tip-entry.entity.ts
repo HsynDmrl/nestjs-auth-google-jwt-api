@@ -14,7 +14,7 @@ export class TipEntry extends BaseEntity {
   @Column({ length: 3 })
   currencyCode: string;
 
-  @Column({ type: 'int', unsigned: true })
+  @Column({ type: 'int' })
   amountMinorUnit: number;
 
   @Column({ length: 255, nullable: true })
