@@ -56,7 +56,12 @@ export class AppModule {
           secret: process.env.SECRET_KEY,
           resave: false,
           saveUninitialized: false,
-          cookie: { maxAge: 3600000 }, // 1 saatlik oturum süresi
+          cookie: {
+            maxAge: 3600000, // 1 saatlik oturum süresi
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+          },
         }),
       )
       .forRoutes('*');
