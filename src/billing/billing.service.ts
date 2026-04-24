@@ -41,7 +41,10 @@ export class BillingService {
     return PLAN_FEATURES[plan];
   }
 
-  async assertMemberLimit(companyId: string, memberCount: number): Promise<void> {
+  async assertMemberLimit(
+    companyId: string,
+    memberCount: number,
+  ): Promise<void> {
     const featureSet = await this.getFeatureSet(companyId);
     if (memberCount > featureSet.maxMembersPerBranch) {
       throw new ForbiddenException(
@@ -93,7 +96,8 @@ export class BillingService {
       periodStartAt: new Date(upsertSubscriptionDto.periodStartAt),
       periodEndAt: new Date(upsertSubscriptionDto.periodEndAt),
       provider: upsertSubscriptionDto.provider ?? null,
-      providerSubscriptionId: upsertSubscriptionDto.providerSubscriptionId ?? null,
+      providerSubscriptionId:
+        upsertSubscriptionDto.providerSubscriptionId ?? null,
     });
 
     return this.subscriptionRepository.save(subscription);

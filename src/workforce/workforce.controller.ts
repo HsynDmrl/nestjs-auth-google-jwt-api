@@ -78,7 +78,8 @@ export class WorkforceController {
   @Get('weekly-schedules/:scheduleId')
   @ApiOperation({ summary: 'Haftalık planı atamalarla birlikte getirir.' })
   getWeeklySchedule(
-    @Param('scheduleId', new ParseUUIDPipe({ version: '4' })) scheduleId: string,
+    @Param('scheduleId', new ParseUUIDPipe({ version: '4' }))
+    scheduleId: string,
   ) {
     return this.workforceService.listWeeklySchedule(scheduleId);
   }

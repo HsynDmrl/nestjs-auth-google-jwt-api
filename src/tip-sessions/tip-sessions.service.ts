@@ -74,7 +74,9 @@ export class TipSessionsService {
       },
     });
 
-    if (activeMembershipCount !== createTipSessionDto.participantUserIds.length) {
+    if (
+      activeMembershipCount !== createTipSessionDto.participantUserIds.length
+    ) {
       throw new ForbiddenException(
         'Tip session katılımcılarının tamamı şubeye aktif üye olmalıdır.',
       );
@@ -109,7 +111,14 @@ export class TipSessionsService {
   async findOneById(sessionId: string, branchId?: string): Promise<TipSession> {
     const session = await this.tipSessionRepository.findOne({
       where: { id: sessionId },
-      relations: ['company', 'branch', 'team', 'participants', 'tipEntries', 'distributions'],
+      relations: [
+        'company',
+        'branch',
+        'team',
+        'participants',
+        'tipEntries',
+        'distributions',
+      ],
     });
 
     if (!session) {

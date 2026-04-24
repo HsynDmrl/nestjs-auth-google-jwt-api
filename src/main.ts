@@ -18,7 +18,12 @@ async function bootstrap() {
   app.enableCors({
     credentials: true,
     exposedHeaders: ['authorization'],
-    allowedHeaders: ['content-type', 'authorization', 'x-device-id', 'x-branch-id'],
+    allowedHeaders: [
+      'content-type',
+      'authorization',
+      'x-device-id',
+      'x-branch-id',
+    ],
   });
 
   app.setGlobalPrefix('v1');

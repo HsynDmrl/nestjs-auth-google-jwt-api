@@ -50,7 +50,9 @@ export class WorkforceService {
   async createShiftTemplate(
     createShiftTemplateDto: CreateShiftTemplateDto,
   ): Promise<ShiftTemplate> {
-    const branch = await this.assertShiftFeature(createShiftTemplateDto.branchId);
+    const branch = await this.assertShiftFeature(
+      createShiftTemplateDto.branchId,
+    );
 
     if (createShiftTemplateDto.startTime >= createShiftTemplateDto.endTime) {
       throw new BadRequestException('Vardiya başlangıcı bitişten önce olmalı.');
@@ -68,10 +70,17 @@ export class WorkforceService {
   async createWeeklySchedule(
     createWeeklyScheduleDto: CreateWeeklyScheduleDto,
   ): Promise<WeeklySchedule> {
-    const branch = await this.assertShiftFeature(createWeeklyScheduleDto.branchId);
+    const branch = await this.assertShiftFeature(
+      createWeeklyScheduleDto.branchId,
+    );
 
-    if (createWeeklyScheduleDto.weekStartDate > createWeeklyScheduleDto.weekEndDate) {
-      throw new BadRequestException('Hafta başlangıcı hafta sonundan büyük olamaz.');
+    if (
+      createWeeklyScheduleDto.weekStartDate >
+      createWeeklyScheduleDto.weekEndDate
+    ) {
+      throw new BadRequestException(
+        'Hafta başlangıcı hafta sonundan büyük olamaz.',
+      );
     }
 
     const schedule = this.weeklyScheduleRepository.create({
@@ -142,7 +151,12 @@ export class WorkforceService {
   async listWeeklySchedule(scheduleId: string): Promise<WeeklySchedule> {
     const schedule = await this.weeklyScheduleRepository.findOne({
       where: { id: scheduleId },
-      relations: ['branch', 'assignments', 'assignments.user', 'assignments.shiftTemplate'],
+      relations: [
+        'branch',
+        'assignments',
+        'assignments.user',
+        'assignments.shiftTemplate',
+      ],
     });
     if (!schedule) {
       throw new NotFoundException('Haftalık plan bulunamadı.');
