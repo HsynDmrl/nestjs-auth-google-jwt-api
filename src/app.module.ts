@@ -19,6 +19,9 @@ import * as session from 'express-session';
 import { APP_FILTER } from '@nestjs/core';
 import { GlobalExceptionFilter } from './core/exceptions/filters/global-exception.filter'; // Filter'ı da ekliyoruz
 import { ModelMapperService } from './model-mapper/model-mapper.service';
+import { TenancyModule } from './tenancy/tenancy.module';
+import { BillingModule } from './billing/billing.module';
+import { WorkforceModule } from './workforce/workforce.module';
 
 @Module({
   imports: [
@@ -37,6 +40,9 @@ import { ModelMapperService } from './model-mapper/model-mapper.service';
     TipSessionsModule,
     TipEntriesModule,
     DistributionsModule,
+    TenancyModule,
+    BillingModule,
+    WorkforceModule,
   ],
   controllers: [AppController],
   providers: [
