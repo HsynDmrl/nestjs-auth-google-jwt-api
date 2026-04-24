@@ -11,6 +11,9 @@ import { SeedModule } from './seed/seed.module';
 import { PermissionsModule } from './admin/permissions/permissions.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { CaptchaModule } from './captcha/captcha.module';
+import { TipSessionsModule } from './tip-sessions/tip-sessions.module';
+import { TipEntriesModule } from './tip-entries/tip-entries.module';
+import { DistributionsModule } from './distributions/distributions.module';
 
 import * as session from 'express-session';
 import { APP_FILTER } from '@nestjs/core';
@@ -31,6 +34,9 @@ import { ModelMapperService } from './model-mapper/model-mapper.service';
     PermissionsModule,
     AuditLogModule,
     CaptchaModule,
+    TipSessionsModule,
+    TipEntriesModule,
+    DistributionsModule,
   ],
   controllers: [AppController],
   providers: [
