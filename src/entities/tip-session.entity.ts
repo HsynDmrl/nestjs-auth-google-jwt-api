@@ -1,8 +1,18 @@
-import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
 import { TipEntry } from './tip-entry.entity';
 import { Distribution } from './distribution.entity';
+import { Company } from './company.entity';
+import { Branch } from './branch.entity';
+import { Team } from './team.entity';
 
 export enum TipSessionStatus {
   OPEN = 'OPEN',
@@ -11,6 +21,21 @@ export enum TipSessionStatus {
 
 @Entity()
 export class TipSession extends BaseEntity {
+  @ManyToOne(() => Company, { nullable: false, onDelete: 'CASCADE' })
+  company: Company;
+
+  @ManyToOne(() => Branch, (branch) => branch.tipSessions, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
+  branch: Branch;
+
+  @ManyToOne(() => Team, (team) => team.tipSessions, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
+  team: Team;
+
   @Column({ length: 150 })
   name: string;
 

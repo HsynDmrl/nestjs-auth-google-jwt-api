@@ -30,7 +30,7 @@ import { CaptchaModule } from 'src/captcha/captcha.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '60m' },
+        signOptions: { expiresIn: '15m' },
       }),
     }),
     TypeOrmModule.forFeature([Role, RefreshToken, PasswordReset]),

@@ -5,6 +5,7 @@ import { RefreshToken } from './refresh-token.entity';
 import { EmailConfirmation } from './email-confirmation.entity';
 import { PasswordReset } from './password-reset.entity';
 import { UserActivity } from './user-activity.entity';
+import { Membership } from './membership.entity';
 
 @Entity()
 export class User extends BaseEntity {
@@ -41,4 +42,7 @@ export class User extends BaseEntity {
 
   @OneToMany(() => UserActivity, (activity) => activity.user)
   activities: UserActivity[];
+
+  @OneToMany(() => Membership, (membership) => membership.user)
+  memberships: Membership[];
 }

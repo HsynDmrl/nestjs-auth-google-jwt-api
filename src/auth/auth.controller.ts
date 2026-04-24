@@ -6,6 +6,7 @@ import {
   UseGuards,
   Param,
   Get,
+  Headers,
   HttpCode,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -19,6 +20,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBody,
+  ApiHeader,
   ApiParam,
   ApiBearerAuth,
 } from '@nestjs/swagger';
@@ -49,14 +51,20 @@ export class AuthController {
     description: 'E-posta ve şifre kullanarak kullanıcı girişi yapar.',
   })
   @ApiBody({ type: LoginUserDto })
+  @ApiHeader({
+    name: 'x-device-id',
+    required: true,
+    description: 'Cihaza özel benzersiz kimlik',
+  })
   @ApiResponse({ status: 200, description: 'Giriş başarılı.' })
   @ApiResponse({ status: 401, description: 'Geçersiz kimlik bilgileri.' })
   async login(
     @Req() req,
     @Body() loginRequestDto: LoginUserDto,
+    @Headers('x-device-id') deviceId: string,
   ): Promise<LoginResponseDto> {
     const ipAddress = req.ip;
-    return this.authService.login(loginRequestDto, ipAddress, req);
+    return this.authService.login(loginRequestDto, ipAddress, deviceId, req);
   }
 
   @Post('register')
@@ -82,6 +90,11 @@ export class AuthController {
     description: 'Refresh token kullanarak access token yeniler.',
   })
   @ApiBody({ type: RefreshTokenDto })
+  @ApiHeader({
+    name: 'x-device-id',
+    required: true,
+    description: 'Cihaza özel benzersiz kimlik',
+  })
   @ApiResponse({
     status: 200,
     type: RefreshTokensResponseDto,
@@ -91,8 +104,20 @@ export class AuthController {
   async refreshTokens(
     @Body() refreshTokenDto: RefreshTokenDto,
     @Req() request: any,
+    @Headers('x-device-id') deviceId: string,
   ): Promise<RefreshTokensResponseDto> {
-    return this.authService.refreshTokens(refreshTokenDto, request);
+    return this.authService.refreshTokens(refreshTokenDto, deviceId, request);
+  }
+
+  @Post('logout-all')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Tüm cihaz oturumlarını kapatır.',
+    description: 'Kullanıcının tüm aktif refresh tokenlarını iptal eder.',
+  })
+  async logoutAll(@Req() req): Promise<{ message: string }> {
+    return this.authService.revokeAllUserSessions(req.user.id);
   }
 
   @Get('confirm/:token')

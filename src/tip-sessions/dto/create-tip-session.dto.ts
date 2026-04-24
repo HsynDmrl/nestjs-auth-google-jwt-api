@@ -13,6 +13,22 @@ import {
 import { IsCurrencyMinorUnitMap } from 'src/common/validators/is-currency-minor-unit-map.validator';
 
 export class CreateTipSessionDto {
+  @IsUUID('4')
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'Tipbox oturumu açılacak şube ID',
+    example: 'd290f1ee-6c54-4b01-90e6-d701748f0851',
+  })
+  readonly branchId: string;
+
+  @IsUUID('4')
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'Tipbox oturumu açılacak takım ID',
+    example: 'd290f1ee-6c54-4b01-90e6-d701748f0851',
+  })
+  readonly teamId: string;
+
   @IsString()
   @IsNotEmpty()
   @Length(3, 150)

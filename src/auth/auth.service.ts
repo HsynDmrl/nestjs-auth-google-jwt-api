@@ -7,7 +7,6 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
-import { CreateUserDto } from 'src/users/dto/requests/create-user.dto';
 import { Role } from 'src/entities/role.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -50,8 +49,16 @@ export class AuthService {
   async login(
     loginRequestDto: LoginUserDto,
     ipAddress: string,
+    deviceId: string,
     request?: any,
   ): Promise<LoginResponseDto> {
+    if (!deviceId?.trim()) {
+      throw new HttpException(
+        'x-device-id header zorunludur.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const { email, password, captchaInput } = loginRequestDto;
     const user = await this.findUserAndCheckAttempts(
       email,
@@ -66,8 +73,10 @@ export class AuthService {
     // Access token ve refresh token oluştur
     const payload = { id: user.id, email: user.email, roles: user.roles };
     const accessToken = this.jwtService.sign(payload);
-    const refreshToken =
-      await this.refreshTokenService.generateRefreshToken(user);
+    const refreshToken = await this.refreshTokenService.generateRefreshToken(
+      user,
+      deviceId,
+    );
 
     // Kullanıcı aktivitesini loglama (IP adresi burada loglanıyor)
     await this.auditLogService.logUserActivity(
@@ -183,6 +192,7 @@ export class AuthService {
 
   async refreshTokens(
     refreshTokenDto: RefreshTokenDto,
+    deviceId: string,
     request: any,
   ): Promise<RefreshTokensResponseDto> {
     if (!request) {
@@ -191,44 +201,41 @@ export class AuthService {
         HttpStatus.BAD_REQUEST,
       );
     }
-    //TODO BURDA KALDIM ACCESS TOKENI ESKISI DE CALISIYOR! ÇÖZ SADECE YENİSİ ÇALIŞSIN
-    // Refresh token'ı doğrula
+    if (!deviceId?.trim()) {
+      throw new HttpException(
+        'x-device-id header zorunludur.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     const validRefreshToken =
       await this.refreshTokenService.validateRefreshToken(
         refreshTokenDto.refreshToken,
+        deviceId,
       );
 
-    if (
-      !validRefreshToken ||
-      validRefreshToken.user.id !== refreshTokenDto.userId
-    ) {
+    if (!validRefreshToken) {
       throw new HttpException(
         'Geçersiz refresh token',
         HttpStatus.UNAUTHORIZED,
       );
     }
 
-    // Access token'ı doğrula
-    try {
-      this.jwtService.verify(refreshTokenDto.accessToken, {
-        ignoreExpiration: true,
-      });
-    } catch (error) {
-      throw new HttpException('Geçersiz access token', HttpStatus.UNAUTHORIZED);
-    }
-
     const user = validRefreshToken.user;
 
-    // Refresh token'ı iptal et
-    await this.refreshTokenService.revokeRefreshToken(
-      refreshTokenDto.refreshToken,
+    await this.refreshTokenService.markRefreshTokenUsed(validRefreshToken.id);
+
+    const newRefreshToken = await this.refreshTokenService.generateRefreshToken(
+      user,
+      deviceId,
+      validRefreshToken.familyId,
+    );
+    await this.refreshTokenService.linkReplacementToken(
+      validRefreshToken.id,
+      newRefreshToken.entity.id,
     );
 
-    // Yeni access token ve refresh token oluştur
     const payload = { id: user.id, email: user.email, roles: user.roles };
     const newAccessToken = this.jwtService.sign(payload);
-    const newRefreshToken =
-      await this.refreshTokenService.generateRefreshToken(user);
 
     // Kullanıcı aktivitesini loglama (IP adresi burada loglanıyor)
     await this.auditLogService.logUserActivity(
@@ -241,6 +248,11 @@ export class AuthService {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken.token,
     };
+  }
+
+  async revokeAllUserSessions(userId: string): Promise<{ message: string }> {
+    await this.refreshTokenService.revokeAllUserTokens(userId);
+    return { message: 'Tüm cihaz oturumları kapatıldı.' };
   }
 
   async changePassword(
