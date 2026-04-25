@@ -22,6 +22,7 @@ Bu proje, **NestJS + PostgreSQL + TypeORM** tabanlı, mobil (Expo) ve web admin 
 - Billing ve plan bazlı feature gating:
   - `FREE / STARTER / PRO / ENTERPRISE`
   - quota ve feature kontrolü
+  - tenant capability matrisi (branch/team/move/read-only)
 - Workforce foundation:
   - shift template
   - weekly schedule
@@ -109,12 +110,27 @@ Global API prefix: `/v1`
 ### Tenancy Modülü
 - Company, Branch, Team, Membership domain altyapısı
 - Aktif branch context çözümleme
+- Tenant yönetim politikası:
+  - `FREE` plan: read-only (yazma/taşıma/değiştirme kapalı)
+  - `STARTER/PRO`: takım oluşturma ve üyelik yönetimi
+  - `ENTERPRISE`: şube oluşturma + takım oluşturma + takım taşıma
+
+### Rol Modeli ve Yönetim Yüzeyleri
+- **Super Admin (platform owner)**:
+  - `admin/*` ve `admin/billing/*` endpointleri
+  - plan/abonelik/tenant lifecycle yönetimi
+- **Tenant Admin / Mobile User**:
+  - `tenancy/*` ve tenant-scope endpointleri
+  - yalnızca kendi tenant verilerini yönetme/görüntüleme
 
 ### Billing Modülü
 - Plan kodları ve plan-feature matrisi
 - Subscription yönetimi
 - Quota enforcement
 - `@RequiresFeature(...)` + `RequiresFeatureGuard`
+- Deterministic downgrade:
+  - `ACTIVE / GRACE_PERIOD` + geçerli dönem => ücretli davranış
+  - dönem bitmiş veya abonelik yok => `FREE` + read-only
 
 ### Workforce Modülü
 - Vardiya şablonları
@@ -180,6 +196,7 @@ Bu repoda temel unit test yapısı mevcuttur ve yeni testler eklenmiştir:
 - Refresh reuse tespiti ve token family revoke uygulanır
 - Permission guard + feature guard birlikte çalışır
 - Branch context zorunluluğu tenant izolasyonunu güçlendirir
+- Team move işlemi yalnızca aynı company içinde ve en üst paket için açıktır
 
 ---
 

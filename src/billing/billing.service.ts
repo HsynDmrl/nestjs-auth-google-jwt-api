@@ -12,6 +12,20 @@ import { ForbiddenException } from '@nestjs/common';
 import { UpsertSubscriptionDto } from './dto/upsert-subscription.dto';
 import { NotFoundException } from '@nestjs/common';
 
+export type TenantAction =
+  | 'create_branch'
+  | 'create_team'
+  | 'move_team'
+  | 'manage_membership'
+  | 'manage_workforce';
+
+export interface CompanyCapabilitySnapshot {
+  companyId: string;
+  plan: PlanCode;
+  features: PlanFeatureSet;
+  readOnlyReason: 'NONE' | 'NO_ACTIVE_SUBSCRIPTION' | 'SUBSCRIPTION_EXPIRED';
+}
+
 @Injectable()
 export class BillingService {
   constructor(
@@ -21,24 +35,99 @@ export class BillingService {
     private readonly companyRepository: Repository<Company>,
   ) {}
 
-  async getEffectivePlan(companyId: string): Promise<PlanCode> {
-    await this.companyRepository.findOneOrFail({ where: { id: companyId } });
+  private getActionPolicy(action: TenantAction): {
+    capability: keyof PlanFeatureSet;
+    forbiddenMessage: string;
+  } {
+    switch (action) {
+      case 'create_branch':
+        return {
+          capability: 'canCreateBranch',
+          forbiddenMessage:
+            'Şube oluşturma yalnızca en üst pakette kullanılabilir.',
+        };
+      case 'create_team':
+        return {
+          capability: 'canCreateTeam',
+          forbiddenMessage:
+            'Takım oluşturma için ücretli bir paket gereklidir.',
+        };
+      case 'move_team':
+        return {
+          capability: 'canMoveTeam',
+          forbiddenMessage:
+            'Takım taşıma yalnızca en üst pakette kullanılabilir.',
+        };
+      case 'manage_membership':
+        return {
+          capability: 'canManageMembership',
+          forbiddenMessage:
+            'Üyelik yönetimi için ücretli bir paket gereklidir.',
+        };
+      case 'manage_workforce':
+        return {
+          capability: 'shiftManagementEnabled',
+          forbiddenMessage:
+            'Vardiya yönetimi için bu özellik paketinizde aktif olmalıdır.',
+        };
+    }
+  }
 
-    const activeSubscription = await this.subscriptionRepository.findOne({
-      where: {
-        company: { id: companyId },
-        status: SubscriptionStatus.ACTIVE,
-      },
+  async getCompanyCapabilitySnapshot(
+    companyId: string,
+  ): Promise<CompanyCapabilitySnapshot> {
+    await this.companyRepository.findOneOrFail({ where: { id: companyId } });
+    const now = new Date();
+
+    const currentSubscription = await this.subscriptionRepository.findOne({
+      where: [
+        {
+          company: { id: companyId },
+          status: SubscriptionStatus.ACTIVE,
+        },
+        {
+          company: { id: companyId },
+          status: SubscriptionStatus.GRACE_PERIOD,
+        },
+      ],
       order: { periodEndAt: 'DESC' },
       relations: ['company'],
     });
 
-    return activeSubscription?.planCode ?? PlanCode.FREE;
+    if (!currentSubscription) {
+      return {
+        companyId,
+        plan: PlanCode.FREE,
+        features: PLAN_FEATURES[PlanCode.FREE],
+        readOnlyReason: 'NO_ACTIVE_SUBSCRIPTION',
+      };
+    }
+
+    if (currentSubscription.periodEndAt < now) {
+      return {
+        companyId,
+        plan: PlanCode.FREE,
+        features: PLAN_FEATURES[PlanCode.FREE],
+        readOnlyReason: 'SUBSCRIPTION_EXPIRED',
+      };
+    }
+
+    return {
+      companyId,
+      plan: currentSubscription.planCode,
+      features: PLAN_FEATURES[currentSubscription.planCode],
+      readOnlyReason: 'NONE',
+    };
+  }
+
+  async getEffectivePlan(companyId: string): Promise<PlanCode> {
+    const snapshot = await this.getCompanyCapabilitySnapshot(companyId);
+    return snapshot.plan;
   }
 
   async getFeatureSet(companyId: string): Promise<PlanFeatureSet> {
-    const plan = await this.getEffectivePlan(companyId);
-    return PLAN_FEATURES[plan];
+    const snapshot = await this.getCompanyCapabilitySnapshot(companyId);
+    return snapshot.features;
   }
 
   async assertMemberLimit(
@@ -65,6 +154,24 @@ export class BillingService {
     }
   }
 
+  async assertTenantActionAllowed(
+    companyId: string,
+    action: TenantAction,
+  ): Promise<void> {
+    const snapshot = await this.getCompanyCapabilitySnapshot(companyId);
+    const policy = this.getActionPolicy(action);
+
+    if (snapshot.features.readOnlyMode) {
+      throw new ForbiddenException(
+        'Planınız şu anda read-only modda. Geçmiş verileri görüntüleyebilirsiniz ancak yazma işlemleri için ücretli pakete geçmelisiniz.',
+      );
+    }
+
+    if (!snapshot.features[policy.capability]) {
+      throw new ForbiddenException(policy.forbiddenMessage);
+    }
+  }
+
   async upsertSubscription(
     upsertSubscriptionDto: UpsertSubscriptionDto,
   ): Promise<Subscription> {
@@ -76,10 +183,16 @@ export class BillingService {
     }
 
     const existing = await this.subscriptionRepository.findOne({
-      where: {
-        company: { id: upsertSubscriptionDto.companyId },
-        status: SubscriptionStatus.ACTIVE,
-      },
+      where: [
+        {
+          company: { id: upsertSubscriptionDto.companyId },
+          status: SubscriptionStatus.ACTIVE,
+        },
+        {
+          company: { id: upsertSubscriptionDto.companyId },
+          status: SubscriptionStatus.GRACE_PERIOD,
+        },
+      ],
       relations: ['company'],
       order: { periodEndAt: 'DESC' },
     });

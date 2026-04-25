@@ -40,9 +40,9 @@ export class WorkforceService {
     if (!branch) {
       throw new NotFoundException('Şube bulunamadı.');
     }
-    await this.billingService.assertFeatureEnabled(
+    await this.billingService.assertTenantActionAllowed(
       branch.company.id,
-      'shiftManagementEnabled',
+      'manage_workforce',
     );
     return branch;
   }
@@ -102,9 +102,9 @@ export class WorkforceService {
       throw new NotFoundException('Haftalık plan bulunamadı.');
     }
 
-    await this.billingService.assertFeatureEnabled(
+    await this.billingService.assertTenantActionAllowed(
       schedule.branch.company.id,
-      'shiftManagementEnabled',
+      'manage_workforce',
     );
 
     const template = await this.shiftTemplateRepository.findOne({
