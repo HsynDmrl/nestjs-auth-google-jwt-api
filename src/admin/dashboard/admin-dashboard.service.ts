@@ -8,7 +8,10 @@ import { Company } from 'src/entities/company.entity';
 import { Branch } from 'src/entities/branch.entity';
 import { Team } from 'src/entities/team.entity';
 import { Membership } from 'src/entities/membership.entity';
-import { Subscription, SubscriptionStatus } from 'src/entities/subscription.entity';
+import {
+  Subscription,
+  SubscriptionStatus,
+} from 'src/entities/subscription.entity';
 import { AdminDashboardSummaryResponseDto } from './dto/admin-dashboard-summary-response.dto';
 
 @Injectable()

@@ -6,9 +6,7 @@ import {
 } from 'class-validator';
 
 @ValidatorConstraint({ name: 'IsCurrencyMinorUnitMap', async: false })
-export class IsCurrencyMinorUnitMapConstraint
-  implements ValidatorConstraintInterface
-{
+export class IsCurrencyMinorUnitMapConstraint implements ValidatorConstraintInterface {
   validate(value: unknown): boolean {
     if (value === undefined || value === null) {
       return true;

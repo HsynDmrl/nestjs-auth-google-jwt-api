@@ -38,7 +38,9 @@ describe('RequiresFeatureGuard', () => {
   it('returns true when no feature metadata is defined', async () => {
     reflector.getAllAndOverride.mockReturnValue(undefined);
 
-    await expect(guard.canActivate(createContext('company-1'))).resolves.toBe(true);
+    await expect(guard.canActivate(createContext('company-1'))).resolves.toBe(
+      true,
+    );
     expect(billingService.assertFeatureEnabled).not.toHaveBeenCalled();
   });
 
@@ -54,7 +56,9 @@ describe('RequiresFeatureGuard', () => {
   it('checks feature when metadata and company context exist', async () => {
     reflector.getAllAndOverride.mockReturnValue('tipboxEnabled');
 
-    await expect(guard.canActivate(createContext('company-1'))).resolves.toBe(true);
+    await expect(guard.canActivate(createContext('company-1'))).resolves.toBe(
+      true,
+    );
     expect(billingService.assertFeatureEnabled).toHaveBeenCalledWith(
       'company-1',
       'tipboxEnabled',

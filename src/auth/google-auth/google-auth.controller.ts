@@ -15,7 +15,7 @@ export class GoogleAuthController {
     summary: 'Google ile Giriş',
     description: 'Google kimlik doğrulamasını başlatır.',
   })
-  async googleAuth(@Req() _req: Request) {
+  async googleAuth() {
     // Bu metot sadece yönlendirmeyi başlatır
   }
 
