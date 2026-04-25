@@ -23,11 +23,14 @@ import { CreateShiftAssignmentDto } from './dto/create-shift-assignment.dto';
 import { CreateShiftTemplateDto } from './dto/create-shift-template.dto';
 import { CreateWeeklyScheduleDto } from './dto/create-weekly-schedule.dto';
 import { WorkforceService } from './workforce.service';
+import { RequiresFeature } from 'src/billing/decorators/requires-feature.decorator';
+import { RequiresFeatureGuard } from 'src/billing/guards/requires-feature.guard';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Workforce')
 @Controller('workforce')
-@UseGuards(JwtAuthGuard, BranchContextGuard)
+@UseGuards(JwtAuthGuard, BranchContextGuard, RequiresFeatureGuard)
+@RequiresFeature('shiftManagementEnabled')
 @ApiHeader({
   name: 'x-branch-id',
   required: true,

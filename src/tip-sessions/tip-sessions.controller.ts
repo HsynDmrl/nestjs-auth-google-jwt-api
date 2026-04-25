@@ -22,6 +22,8 @@ import { RequestWithTenantContext } from 'src/tenancy/interfaces/tenant-context.
 import { CreateTipSessionDto } from './dto/create-tip-session.dto';
 import { TipSessionsService } from './tip-sessions.service';
 import { TipSession } from 'src/entities/tip-session.entity';
+import { RequiresFeatureGuard } from 'src/billing/guards/requires-feature.guard';
+import { RequiresFeature } from 'src/billing/decorators/requires-feature.decorator';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Tip Sessions')
@@ -30,7 +32,8 @@ export class TipSessionsController {
   constructor(private readonly tipSessionsService: TipSessionsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, BranchContextGuard)
+  @UseGuards(JwtAuthGuard, BranchContextGuard, RequiresFeatureGuard)
+  @RequiresFeature('tipboxEnabled')
   @ApiHeader({
     name: 'x-branch-id',
     required: true,
