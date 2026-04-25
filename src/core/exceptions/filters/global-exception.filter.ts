@@ -6,7 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import * as moment from 'moment';
+import moment from 'moment';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {

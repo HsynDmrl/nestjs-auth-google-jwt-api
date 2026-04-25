@@ -5,8 +5,7 @@ import {
   DeleteDateColumn,
 } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { Expose, Transform } from 'class-transformer';
-import * as moment from 'moment';
+import { Expose } from 'class-transformer';
 
 export abstract class BaseEntity {
   @PrimaryGeneratedColumn('uuid')

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PasswordReset } from 'src/entities/password-reset.entity';
 import { User } from 'src/entities/user.entity';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()

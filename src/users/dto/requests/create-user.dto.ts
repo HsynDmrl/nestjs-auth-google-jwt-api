@@ -5,7 +5,6 @@ import {
   IsNotEmpty,
   IsString,
   Length,
-  Matches,
 } from 'class-validator';
 import { Role } from 'src/entities/role.entity';
 

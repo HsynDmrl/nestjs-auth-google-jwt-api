@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FailedLoginAttempt } from 'src/entities/failed-login-attempt.entity';
 import { Repository } from 'typeorm';
-import * as moment from 'moment';
+import moment from 'moment';
 import { CaptchaService } from 'src/captcha/captcha.service';
 
 @Injectable()

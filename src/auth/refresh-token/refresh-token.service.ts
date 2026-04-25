@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RefreshToken } from 'src/entities/refresh-token.entity';
 import { User } from 'src/entities/user.entity';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 import { createHash, randomBytes } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 

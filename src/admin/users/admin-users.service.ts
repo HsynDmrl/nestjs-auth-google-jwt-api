@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/entities/user.entity';
-import { Repository, Not, IsNull, In } from 'typeorm';
+import { Repository, Not, IsNull } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { ModelMapperService } from 'src/model-mapper/model-mapper.service';
 import { ActiveAllAdminUsersResponseDto } from './responses/concretes/operations/active-all-admin-users-response.dto';

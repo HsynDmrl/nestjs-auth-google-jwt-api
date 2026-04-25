@@ -22,6 +22,7 @@ import { ModelMapperService } from './model-mapper/model-mapper.service';
 import { TenancyModule } from './tenancy/tenancy.module';
 import { BillingModule } from './billing/billing.module';
 import { WorkforceModule } from './workforce/workforce.module';
+import { AdminDashboardModule } from './admin/dashboard/admin-dashboard.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { WorkforceModule } from './workforce/workforce.module';
     TenancyModule,
     BillingModule,
     WorkforceModule,
+    AdminDashboardModule,
   ],
   controllers: [AppController],
   providers: [

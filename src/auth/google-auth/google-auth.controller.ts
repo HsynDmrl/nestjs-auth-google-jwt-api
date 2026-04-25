@@ -2,6 +2,7 @@ import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from '../auth.service';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Request } from 'express';
 
 @ApiTags('Google Auth')
 @Controller('auth/google')
@@ -14,7 +15,7 @@ export class GoogleAuthController {
     summary: 'Google ile Giriş',
     description: 'Google kimlik doğrulamasını başlatır.',
   })
-  async googleAuth(@Req() req) {
+  async googleAuth(@Req() _req: Request) {
     // Bu metot sadece yönlendirmeyi başlatır
   }
 
@@ -29,7 +30,7 @@ export class GoogleAuthController {
     status: 401,
     description: 'Google kimlik doğrulaması başarısız.',
   })
-  async googleAuthRedirect(@Req() req) {
+  async googleAuthRedirect(@Req() req: Request) {
     return this.authService.googleLogin(req);
   }
 }

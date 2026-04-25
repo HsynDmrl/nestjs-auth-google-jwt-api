@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose, Transform, Type } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { BasePermissionResponseDto } from '../../../../permissions/dto/responses/abstracts/operations/base-permission-response.dto';
 
 export class BaseRoleResponseDto {

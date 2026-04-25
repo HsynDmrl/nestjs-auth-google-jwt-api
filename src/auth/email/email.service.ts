@@ -56,8 +56,10 @@ export class EmailService {
 
       console.log('Message sent: %s', info.messageId);
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       // Hatanın 550 koduna ait olup olmadığını kontrol et
-      if (error.message.includes('550')) {
+      if (errorMessage.includes('550')) {
         throw new HttpException(
           'E-posta gönderilemedi, geçersiz e-posta adresi.',
           HttpStatus.BAD_REQUEST,

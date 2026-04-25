@@ -1,10 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { BaseRoleRequestDto } from '../abstracts/base-role-request.dto';
-import {
-  ApiExtraModels,
-  ApiProperty,
-  ApiPropertyOptional,
-} from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateRoleRequestDto extends PartialType(BaseRoleRequestDto) {
   // Rol adı

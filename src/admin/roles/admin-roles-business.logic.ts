@@ -3,9 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Permission } from 'src/entities/permission.entity';
 import { Role } from 'src/entities/role.entity';
-import { FindByIdsRolesResponseDto } from './responses/concretes/operations/findByIds-roles-response.dto';
 import { GetByIdRolesResponseDto } from './responses/concretes/operations/getById-roles-resoonse.dto';
 import { FindByIdsPermissionsResponseDto } from '../permissions/dto/responses/concretes/operations/findByIds-permissions-response.dto';
 

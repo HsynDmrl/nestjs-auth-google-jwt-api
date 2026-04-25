@@ -23,7 +23,7 @@ export class AuditLogInterceptor implements NestInterceptor {
     const newValue = {}; // Yeni değeri doldurmak gerek
 
     return next.handle().pipe(
-      tap(async (data) => {
+      tap(async () => {
         await this.auditLogService.createLog(
           action,
           entity,
