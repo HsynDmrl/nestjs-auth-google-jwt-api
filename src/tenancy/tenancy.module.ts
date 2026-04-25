@@ -9,11 +9,13 @@ import { Membership } from 'src/entities/membership.entity';
 import { BillingModule } from 'src/billing/billing.module';
 import { User } from 'src/entities/user.entity';
 import { BranchContextGuard } from './guards/branch-context.guard';
+import { AuditLogModule } from 'src/audit-log/audit-log.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Company, Branch, Team, Membership, User]),
     BillingModule,
+    AuditLogModule,
   ],
   controllers: [TenancyController],
   providers: [TenancyService, BranchContextGuard],

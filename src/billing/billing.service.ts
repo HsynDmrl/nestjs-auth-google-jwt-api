@@ -11,6 +11,8 @@ import { PLAN_FEATURES, PlanFeatureSet } from './constants/plan-features';
 import { ForbiddenException } from '@nestjs/common';
 import { UpsertSubscriptionDto } from './dto/upsert-subscription.dto';
 import { NotFoundException } from '@nestjs/common';
+import { AuditLogService } from 'src/audit-log/audit-log.service';
+import { AuditLogType } from 'src/entities/audit-log.entity';
 
 export type TenantAction =
   | 'create_branch'
@@ -24,6 +26,7 @@ export interface CompanyCapabilitySnapshot {
   plan: PlanCode;
   features: PlanFeatureSet;
   readOnlyReason: 'NONE' | 'NO_ACTIVE_SUBSCRIPTION' | 'SUBSCRIPTION_EXPIRED';
+  transitionAt?: string;
 }
 
 @Injectable()
@@ -33,6 +36,7 @@ export class BillingService {
     private readonly subscriptionRepository: Repository<Subscription>,
     @InjectRepository(Company)
     private readonly companyRepository: Repository<Company>,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   private getActionPolicy(action: TenantAction): {
@@ -99,7 +103,7 @@ export class BillingService {
         companyId,
         plan: PlanCode.FREE,
         features: PLAN_FEATURES[PlanCode.FREE],
-        readOnlyReason: 'NO_ACTIVE_SUBSCRIPTION',
+        readOnlyReason: 'NONE',
       };
     }
 
@@ -107,8 +111,14 @@ export class BillingService {
       return {
         companyId,
         plan: PlanCode.FREE,
-        features: PLAN_FEATURES[PlanCode.FREE],
+        features: {
+          ...PLAN_FEATURES[PlanCode.FREE],
+          readOnlyMode: true,
+          canCreateTeam: false,
+          canManageMembership: false,
+        },
         readOnlyReason: 'SUBSCRIPTION_EXPIRED',
+        transitionAt: currentSubscription.periodEndAt.toISOString(),
       };
     }
 
@@ -213,6 +223,17 @@ export class BillingService {
         upsertSubscriptionDto.providerSubscriptionId ?? null,
     });
 
-    return this.subscriptionRepository.save(subscription);
+    const savedSubscription = await this.subscriptionRepository.save(subscription);
+    await this.auditLogService.createLog(
+      'upsert_subscription',
+      'Subscription',
+      savedSubscription.id,
+      existing ?? null,
+      savedSubscription,
+      AuditLogType.SUCCESS,
+      { id: 'system', email: 'system@platform.local' },
+    );
+
+    return savedSubscription;
   }
 }

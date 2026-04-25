@@ -120,6 +120,20 @@ export class AuthController {
     return this.authService.revokeAllUserSessions(req.user.id);
   }
 
+  @Post('delete-account')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'KVKK uyumlu hesap silme',
+    description:
+      'Kullanıcının hesabını anonimleştirir, soft-delete eder ve kara liste kaydı oluşturur.',
+  })
+  async deleteAccount(
+    @Req() req,
+  ): Promise<{ message: string; deletedAt: string }> {
+    return this.authService.deleteOwnAccount(req.user.id);
+  }
+
   @Get('confirm/:token')
   @HttpCode(200)
   @ApiOperation({

@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Injectable,
   HttpException,
   HttpStatus,
@@ -147,6 +148,15 @@ export class AuthService {
   }
 
   async register(createUserDto: RegisterUserDto): Promise<RegisterResponseDto> {
+    const isBlacklisted = await this.usersService.isEmailBlacklisted(
+      createUserDto.email,
+    );
+    if (isBlacklisted) {
+      throw new ForbiddenException(
+        'Bu e-posta ile yeni hesap açılamaz. Yasal süreç nedeniyle kara listeye alınmıştır.',
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     const userRole = await this.roleRepository.findOne({
       where: { name: 'user' },
@@ -369,6 +379,15 @@ export class AuthService {
     }
 
     if (!user) {
+      const isBlacklisted = await this.usersService.isEmailBlacklisted(
+        req.user.email,
+      );
+      if (isBlacklisted) {
+        throw new ForbiddenException(
+          'Bu e-posta ile yeni hesap açılamaz. Yasal süreç nedeniyle kara listeye alınmıştır.',
+        );
+      }
+
       const userRole = await this.roleRepository.findOne({
         where: { name: 'user' },
       });
@@ -389,6 +408,35 @@ export class AuthService {
       message: 'Google üzerinden kullanıcı bilgileri',
       user,
       accessToken: this.jwtService.sign({ id: user.id, email: user.email }),
+    };
+  }
+
+  async deleteOwnAccount(
+    userId: string,
+  ): Promise<{ message: string; deletedAt: string }> {
+    const user = await this.usersService.findOneById(userId);
+    if (!user) {
+      throw new HttpException('Kullanıcı bulunamadı', HttpStatus.NOT_FOUND);
+    }
+
+    await this.refreshTokenService.revokeAllUserTokens(userId);
+    const deletedUser = await this.usersService.requestAccountDeletion(userId);
+
+    await this.auditLogService.createLog(
+      'delete_own_account',
+      'User',
+      userId,
+      { email: user.email, name: user.name, surname: user.surname },
+      { status: 'SOFT_DELETED_AND_BLACKLISTED' },
+      AuditLogType.SUCCESS,
+      { id: user.id, email: user.email },
+    );
+
+    return {
+      message:
+        'Hesabınız KVKK uyumlu şekilde silinmiştir ve yasal süreç için kayıt altına alınmıştır.',
+      deletedAt:
+        deletedUser.deletedAt?.toISOString?.() ?? new Date().toISOString(),
     };
   }
 }

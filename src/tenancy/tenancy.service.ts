@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BillingService } from 'src/billing/billing.service';
+import { AuditLogService } from 'src/audit-log/audit-log.service';
+import { AuditLogType } from 'src/entities/audit-log.entity';
 import { Branch } from 'src/entities/branch.entity';
 import { Company } from 'src/entities/company.entity';
 import { Membership, MembershipRole } from 'src/entities/membership.entity';
@@ -33,6 +35,7 @@ export class TenancyService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly billingService: BillingService,
+    private readonly auditLogService: AuditLogService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -189,7 +192,7 @@ export class TenancyService {
       'move_team',
     );
 
-    return this.dataSource.transaction(async (manager) => {
+    const movedTeam = await this.dataSource.transaction(async (manager) => {
       const nextTeam = manager.getRepository(Team).merge(team, {
         branch: targetBranch,
       });
@@ -205,6 +208,18 @@ export class TenancyService {
 
       return updatedTeam;
     });
+
+    await this.auditLogService.createLog(
+      'move_team',
+      'Team',
+      team.id,
+      { fromBranchId: team.branch.id },
+      { toBranchId: targetBranch.id },
+      AuditLogType.SUCCESS,
+      { id: userId },
+    );
+
+    return movedTeam;
   }
 
   async resolveTenantContext(
