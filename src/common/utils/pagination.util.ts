@@ -11,7 +11,9 @@ export const normalizePagination = (
   limit: number,
   maxLimit = 50,
 ): NormalizedPagination => {
-  const normalizedPage = Number.isFinite(page) ? Math.max(1, Math.trunc(page)) : 1;
+  const normalizedPage = Number.isFinite(page)
+    ? Math.max(1, Math.trunc(page))
+    : 1;
   const normalizedLimit = Number.isFinite(limit)
     ? Math.max(1, Math.min(maxLimit, Math.trunc(limit)))
     : 10;

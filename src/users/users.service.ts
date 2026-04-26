@@ -20,7 +20,9 @@ export class UsersService {
   ) {}
 
   private hashEmail(email: string): string {
-    return createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
+    return createHash('sha256')
+      .update(email.trim().toLowerCase())
+      .digest('hex');
   }
 
   async findOneById(id: string): Promise<User | undefined> {

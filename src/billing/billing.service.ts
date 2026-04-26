@@ -223,7 +223,8 @@ export class BillingService {
         upsertSubscriptionDto.providerSubscriptionId ?? null,
     });
 
-    const savedSubscription = await this.subscriptionRepository.save(subscription);
+    const savedSubscription =
+      await this.subscriptionRepository.save(subscription);
     await this.auditLogService.createLog(
       'upsert_subscription',
       'Subscription',
