@@ -8,6 +8,7 @@ import { ShiftAssignment } from 'src/entities/shift-assignment.entity';
 import { Branch } from 'src/entities/branch.entity';
 import { User } from 'src/entities/user.entity';
 import { BillingModule } from 'src/billing/billing.module';
+import { TipSession } from 'src/entities/tip-session.entity';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { BillingModule } from 'src/billing/billing.module';
       ShiftAssignment,
       Branch,
       User,
+      TipSession,
     ]),
     BillingModule,
   ],

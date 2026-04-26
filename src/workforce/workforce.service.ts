@@ -1,20 +1,63 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BillingService } from 'src/billing/billing.service';
 import { Branch } from 'src/entities/branch.entity';
 import { ShiftAssignment } from 'src/entities/shift-assignment.entity';
 import { ShiftTemplate } from 'src/entities/shift-template.entity';
+import { TipSession, TipSessionStatus } from 'src/entities/tip-session.entity';
 import { User } from 'src/entities/user.entity';
 import { WeeklySchedule } from 'src/entities/weekly-schedule.entity';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { CreateShiftAssignmentDto } from './dto/create-shift-assignment.dto';
 import { CreateShiftTemplateDto } from './dto/create-shift-template.dto';
 import { CreateWeeklyScheduleDto } from './dto/create-weekly-schedule.dto';
-import {
-  BadRequestException,
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+
+export interface WorkforceWarning {
+  code: string;
+  message: string;
+  userId?: string;
+}
+
+export interface ShiftTemplateResult {
+  template: ShiftTemplate;
+  warnings: WorkforceWarning[];
+}
+
+export interface WeeklyScheduleResult {
+  schedule: WeeklySchedule;
+  warnings: WorkforceWarning[];
+}
+
+export interface ShiftAssignmentResult {
+  assignment: ShiftAssignment;
+  warnings: WorkforceWarning[];
+  userWeeklyTotalMinutes: number;
+  userOvertimeMinutes: number;
+}
+
+export interface WorkforceWeeklyUserReport {
+  userId: string;
+  name: string;
+  surname: string;
+  totalWorkMinutes: number;
+  overtimeMinutes: number;
+  tipTotalsByCurrency: Record<string, number>;
+  warnings: WorkforceWarning[];
+}
+
+export interface WorkforceWeeklyReportResult {
+  scheduleId: string;
+  branchId: string;
+  weekStartDate: string;
+  weekEndDate: string;
+  warnings: WorkforceWarning[];
+  users: WorkforceWeeklyUserReport[];
+}
 
 @Injectable()
 export class WorkforceService {
@@ -35,6 +78,8 @@ export class WorkforceService {
     private readonly branchRepository: Repository<Branch>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(TipSession)
+    private readonly tipSessionRepository: Repository<TipSession>,
     private readonly billingService: BillingService,
   ) {}
 
@@ -59,36 +104,43 @@ export class WorkforceService {
     return overlapsEarlyNight || overlapsLateNight;
   }
 
-  private validateTemplateAgainstLaborRules(
+  private collectTemplateWarnings(
     startTime: string,
     endTime: string,
-  ): void {
+  ): WorkforceWarning[] {
     const duration = this.getShiftDurationMinutes(startTime, endTime);
 
     if (duration <= 0) {
       throw new BadRequestException('Vardiya başlangıcı bitişten önce olmalı.');
     }
 
+    const warnings: WorkforceWarning[] = [];
     if (duration > WorkforceService.DAILY_MAX_MINUTES) {
-      throw new BadRequestException(
-        'Türkiye çalışma kurallarına göre bir vardiya 11 saati aşamaz.',
-      );
+      warnings.push({
+        code: 'SHIFT_DAILY_LIMIT_EXCEEDED',
+        message:
+          'Vardiya süresi 11 saatin üzerinde. Yasal mesai sınırları için kontrol önerilir.',
+      });
     }
 
     if (
       this.shiftTouchesNightHours(startTime, endTime) &&
       duration > WorkforceService.NIGHT_SHIFT_MAX_MINUTES
     ) {
-      throw new BadRequestException(
-        'Gece dönemi içeren vardiya 7.5 saati aşamaz.',
-      );
+      warnings.push({
+        code: 'SHIFT_NIGHT_LIMIT_EXCEEDED',
+        message:
+          'Gece dönemine temas eden vardiya 7.5 saatin üzerinde. Gece mesaisi uygunluğunu kontrol edin.',
+      });
     }
+
+    return warnings;
   }
 
-  private validateScheduleRange(
+  private collectScheduleWarnings(
     weekStartDate: string,
     weekEndDate: string,
-  ): void {
+  ): WorkforceWarning[] {
     const start = new Date(weekStartDate);
     const end = new Date(weekEndDate);
 
@@ -101,18 +153,24 @@ export class WorkforceService {
     const dayDiff = Math.floor(
       (end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000),
     );
+
     if (dayDiff !== 6) {
-      throw new BadRequestException(
-        'Haftalık vardiya planı tam 7 gün (başlangıç + 6 gün) olmalıdır.',
-      );
+      return [
+        {
+          code: 'SCHEDULE_NOT_7_DAYS',
+          message:
+            'Plan aralığı tam 7 gün değil. Raporlama ve mesai takibi için 7 günlük plan önerilir.',
+        },
+      ];
     }
+
+    return [];
   }
 
-  private async assertUserWeeklyHourLimit(
+  private async getUserWeeklyTotalMinutes(
     scheduleId: string,
     userId: string,
-    candidateTemplate: ShiftTemplate,
-  ): Promise<void> {
+  ): Promise<number> {
     const assignments = await this.shiftAssignmentRepository.find({
       where: {
         weeklySchedule: { id: scheduleId },
@@ -121,7 +179,7 @@ export class WorkforceService {
       relations: ['shiftTemplate'],
     });
 
-    const currentTotalMinutes = assignments.reduce(
+    return assignments.reduce(
       (sum, assignment) =>
         sum +
         this.getShiftDurationMinutes(
@@ -130,18 +188,24 @@ export class WorkforceService {
         ),
       0,
     );
-    const nextTotalMinutes =
-      currentTotalMinutes +
-      this.getShiftDurationMinutes(
-        candidateTemplate.startTime,
-        candidateTemplate.endTime,
-      );
+  }
 
-    if (nextTotalMinutes > WorkforceService.WEEKLY_MAX_MINUTES) {
-      throw new UnprocessableEntityException(
-        'Haftalık toplam çalışma süresi 45 saati aşamaz.',
-      );
+  private buildWeeklyLimitWarning(
+    userId: string,
+    totalMinutes: number,
+  ): WorkforceWarning[] {
+    if (totalMinutes <= WorkforceService.WEEKLY_MAX_MINUTES) {
+      return [];
     }
+
+    return [
+      {
+        code: 'USER_WEEKLY_LIMIT_EXCEEDED',
+        userId,
+        message:
+          'Kullanıcının haftalık toplam süresi 45 saati aşıyor. Fazla mesai kontrolü önerilir.',
+      },
+    ];
   }
 
   private async assertShiftFeature(branchId: string): Promise<Branch> {
@@ -161,11 +225,11 @@ export class WorkforceService {
 
   async createShiftTemplate(
     createShiftTemplateDto: CreateShiftTemplateDto,
-  ): Promise<ShiftTemplate> {
+  ): Promise<ShiftTemplateResult> {
     const branch = await this.assertShiftFeature(
       createShiftTemplateDto.branchId,
     );
-    this.validateTemplateAgainstLaborRules(
+    const warnings = this.collectTemplateWarnings(
       createShiftTemplateDto.startTime,
       createShiftTemplateDto.endTime,
     );
@@ -176,17 +240,19 @@ export class WorkforceService {
       startTime: createShiftTemplateDto.startTime,
       endTime: createShiftTemplateDto.endTime,
     });
-    return this.shiftTemplateRepository.save(template);
+
+    const savedTemplate = await this.shiftTemplateRepository.save(template);
+    return { template: savedTemplate, warnings };
   }
 
   async createWeeklySchedule(
     createWeeklyScheduleDto: CreateWeeklyScheduleDto,
-  ): Promise<WeeklySchedule> {
+  ): Promise<WeeklyScheduleResult> {
     const branch = await this.assertShiftFeature(
       createWeeklyScheduleDto.branchId,
     );
 
-    this.validateScheduleRange(
+    const warnings = this.collectScheduleWarnings(
       createWeeklyScheduleDto.weekStartDate,
       createWeeklyScheduleDto.weekEndDate,
     );
@@ -196,12 +262,13 @@ export class WorkforceService {
       weekStartDate: createWeeklyScheduleDto.weekStartDate,
       weekEndDate: createWeeklyScheduleDto.weekEndDate,
     });
-    return this.weeklyScheduleRepository.save(schedule);
+    const savedSchedule = await this.weeklyScheduleRepository.save(schedule);
+    return { schedule: savedSchedule, warnings };
   }
 
   async assignShift(
     createShiftAssignmentDto: CreateShiftAssignmentDto,
-  ): Promise<ShiftAssignment> {
+  ): Promise<ShiftAssignmentResult> {
     const schedule = await this.weeklyScheduleRepository.findOne({
       where: { id: createShiftAssignmentDto.weeklyScheduleId },
       relations: ['branch', 'branch.company'],
@@ -247,7 +314,24 @@ export class WorkforceService {
       );
     }
 
-    await this.assertUserWeeklyHourLimit(schedule.id, user.id, template);
+    const previousTotalMinutes = await this.getUserWeeklyTotalMinutes(
+      schedule.id,
+      user.id,
+    );
+    const shiftMinutes = this.getShiftDurationMinutes(
+      template.startTime,
+      template.endTime,
+    );
+    const userWeeklyTotalMinutes = previousTotalMinutes + shiftMinutes;
+    const userOvertimeMinutes = Math.max(
+      userWeeklyTotalMinutes - WorkforceService.WEEKLY_MAX_MINUTES,
+      0,
+    );
+
+    const warnings: WorkforceWarning[] = [
+      ...this.collectTemplateWarnings(template.startTime, template.endTime),
+      ...this.buildWeeklyLimitWarning(user.id, userWeeklyTotalMinutes),
+    ];
 
     const assignment = this.shiftAssignmentRepository.create({
       weeklySchedule: schedule,
@@ -255,7 +339,15 @@ export class WorkforceService {
       user,
       dayOfWeek: createShiftAssignmentDto.dayOfWeek,
     });
-    return this.shiftAssignmentRepository.save(assignment);
+    const savedAssignment =
+      await this.shiftAssignmentRepository.save(assignment);
+
+    return {
+      assignment: savedAssignment,
+      warnings,
+      userWeeklyTotalMinutes,
+      userOvertimeMinutes,
+    };
   }
 
   async listWeeklySchedule(scheduleId: string): Promise<WeeklySchedule> {
@@ -272,5 +364,87 @@ export class WorkforceService {
       throw new NotFoundException('Haftalık plan bulunamadı.');
     }
     return schedule;
+  }
+
+  async getWeeklyScheduleReport(
+    scheduleId: string,
+  ): Promise<WorkforceWeeklyReportResult> {
+    const schedule = await this.weeklyScheduleRepository.findOne({
+      where: { id: scheduleId },
+      relations: [
+        'branch',
+        'assignments',
+        'assignments.user',
+        'assignments.shiftTemplate',
+      ],
+    });
+    if (!schedule) {
+      throw new NotFoundException('Haftalık plan bulunamadı.');
+    }
+
+    const users = new Map<string, WorkforceWeeklyUserReport>();
+    for (const assignment of schedule.assignments ?? []) {
+      const userId = assignment.user.id;
+      const current = users.get(userId) ?? {
+        userId,
+        name: assignment.user.name,
+        surname: assignment.user.surname,
+        totalWorkMinutes: 0,
+        overtimeMinutes: 0,
+        tipTotalsByCurrency: {},
+        warnings: [],
+      };
+      current.totalWorkMinutes += this.getShiftDurationMinutes(
+        assignment.shiftTemplate.startTime,
+        assignment.shiftTemplate.endTime,
+      );
+      users.set(userId, current);
+    }
+
+    const periodStart = new Date(`${schedule.weekStartDate}T00:00:00.000Z`);
+    const periodEnd = new Date(`${schedule.weekEndDate}T23:59:59.999Z`);
+    const tipSessions = await this.tipSessionRepository.find({
+      where: {
+        branch: { id: schedule.branch.id },
+        status: TipSessionStatus.CLOSED,
+        startedAt: Between(periodStart, periodEnd),
+      },
+      relations: ['distributions', 'distributions.user'],
+    });
+
+    for (const session of tipSessions) {
+      for (const distribution of session.distributions ?? []) {
+        const report = users.get(distribution.user.id);
+        if (!report) {
+          continue;
+        }
+        report.tipTotalsByCurrency[distribution.currencyCode] =
+          (report.tipTotalsByCurrency[distribution.currencyCode] ?? 0) +
+          distribution.amountMinorUnit;
+      }
+    }
+
+    for (const report of users.values()) {
+      report.overtimeMinutes = Math.max(
+        report.totalWorkMinutes - WorkforceService.WEEKLY_MAX_MINUTES,
+        0,
+      );
+      report.warnings = this.buildWeeklyLimitWarning(
+        report.userId,
+        report.totalWorkMinutes,
+      );
+    }
+
+    return {
+      scheduleId: schedule.id,
+      branchId: schedule.branch.id,
+      weekStartDate: schedule.weekStartDate,
+      weekEndDate: schedule.weekEndDate,
+      warnings: this.collectScheduleWarnings(
+        schedule.weekStartDate,
+        schedule.weekEndDate,
+      ),
+      users: [...users.values()],
+    };
   }
 }

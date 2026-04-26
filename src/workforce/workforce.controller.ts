@@ -86,4 +86,16 @@ export class WorkforceController {
   ) {
     return this.workforceService.listWeeklySchedule(scheduleId);
   }
+
+  @Get('weekly-schedules/:scheduleId/report')
+  @ApiOperation({
+    summary:
+      'Haftalık çalışan istatistiğini getirir (çalışma süresi, fazla mesai, tip dağıtımı).',
+  })
+  getWeeklyScheduleReport(
+    @Param('scheduleId', new ParseUUIDPipe({ version: '4' }))
+    scheduleId: string,
+  ) {
+    return this.workforceService.getWeeklyScheduleReport(scheduleId);
+  }
 }

@@ -1,13 +1,10 @@
-import {
-  BadRequestException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BillingService } from 'src/billing/billing.service';
 import { Branch } from 'src/entities/branch.entity';
 import { ShiftAssignment } from 'src/entities/shift-assignment.entity';
 import { ShiftTemplate } from 'src/entities/shift-template.entity';
+import { TipSession } from 'src/entities/tip-session.entity';
 import { User } from 'src/entities/user.entity';
 import { WeeklySchedule } from 'src/entities/weekly-schedule.entity';
 import { WorkforceService } from './workforce.service';
@@ -19,6 +16,7 @@ describe('WorkforceService', () => {
   let shiftAssignmentRepository: any;
   let branchRepository: any;
   let userRepository: any;
+  let tipSessionRepository: any;
   let billingService: { assertTenantActionAllowed: jest.Mock };
 
   beforeEach(async () => {
@@ -40,6 +38,7 @@ describe('WorkforceService', () => {
     };
     branchRepository = { findOne: jest.fn() };
     userRepository = { findOne: jest.fn() };
+    tipSessionRepository = { find: jest.fn() };
     billingService = { assertTenantActionAllowed: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -59,6 +58,10 @@ describe('WorkforceService', () => {
         },
         { provide: getRepositoryToken(Branch), useValue: branchRepository },
         { provide: getRepositoryToken(User), useValue: userRepository },
+        {
+          provide: getRepositoryToken(TipSession),
+          useValue: tipSessionRepository,
+        },
         { provide: BillingService, useValue: billingService },
       ],
     }).compile();
@@ -70,39 +73,53 @@ describe('WorkforceService', () => {
     });
   });
 
-  it('rejects shift template longer than 11 hours', async () => {
-    await expect(
-      service.createShiftTemplate({
-        branchId: 'branch-1',
-        name: 'Uzun Vardiya',
-        startTime: '08:00',
-        endTime: '20:00',
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+  it('creates template and returns warning when shift is longer than 11 hours', async () => {
+    const result = await service.createShiftTemplate({
+      branchId: 'branch-1',
+      name: 'Uzun Vardiya',
+      startTime: '08:00',
+      endTime: '20:00',
+    });
+
+    expect(result.template.name).toBe('Uzun Vardiya');
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'SHIFT_DAILY_LIMIT_EXCEEDED' }),
+      ]),
+    );
   });
 
-  it('rejects night shift template longer than 7.5 hours', async () => {
-    await expect(
-      service.createShiftTemplate({
-        branchId: 'branch-1',
-        name: 'Gece Vardiyası',
-        startTime: '00:00',
-        endTime: '08:00',
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+  it('creates template and returns warning when night shift is longer than 7.5 hours', async () => {
+    const result = await service.createShiftTemplate({
+      branchId: 'branch-1',
+      name: 'Gece Vardiyası',
+      startTime: '00:00',
+      endTime: '08:00',
+    });
+
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'SHIFT_NIGHT_LIMIT_EXCEEDED' }),
+      ]),
+    );
   });
 
-  it('rejects weekly schedule that is not exactly 7 days', async () => {
-    await expect(
-      service.createWeeklySchedule({
-        branchId: 'branch-1',
-        weekStartDate: '2026-05-18',
-        weekEndDate: '2026-05-27',
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+  it('creates schedule and returns warning when range is not exactly 7 days', async () => {
+    const result = await service.createWeeklySchedule({
+      branchId: 'branch-1',
+      weekStartDate: '2026-05-18',
+      weekEndDate: '2026-05-27',
+    });
+
+    expect(result.schedule.weekStartDate).toBe('2026-05-18');
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'SCHEDULE_NOT_7_DAYS' }),
+      ]),
+    );
   });
 
-  it('rejects assignment when weekly total exceeds 45 hours', async () => {
+  it('assigns shift and returns warning when weekly total exceeds 45 hours', async () => {
     weeklyScheduleRepository.findOne.mockResolvedValue({
       id: 'schedule-1',
       branch: { id: 'branch-1', company: { id: 'company-1' } },
@@ -123,13 +140,19 @@ describe('WorkforceService', () => {
       { shiftTemplate: { startTime: '09:00', endTime: '17:00' } },
     ]);
 
-    await expect(
-      service.assignShift({
-        weeklyScheduleId: 'schedule-1',
-        shiftTemplateId: 'template-1',
-        userId: 'user-1',
-        dayOfWeek: 6,
-      }),
-    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    const result = await service.assignShift({
+      weeklyScheduleId: 'schedule-1',
+      shiftTemplateId: 'template-1',
+      userId: 'user-1',
+      dayOfWeek: 6,
+    });
+
+    expect(result.userWeeklyTotalMinutes).toBe(2880);
+    expect(result.userOvertimeMinutes).toBe(180);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'USER_WEEKLY_LIMIT_EXCEEDED' }),
+      ]),
+    );
   });
 });
