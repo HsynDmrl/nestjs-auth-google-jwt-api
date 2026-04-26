@@ -37,6 +37,18 @@ export class User extends BaseEntity {
   @Column({ default: false })
   emailConfirmed: boolean;
 
+  @Column({ default: false })
+  kvkkConsentGiven: boolean;
+
+  @Column({ type: 'datetime', nullable: true })
+  kvkkConsentAt?: Date;
+
+  @Column({ length: 50, nullable: true })
+  kvkkConsentVersion?: string;
+
+  @Column({ default: false })
+  marketingConsentGiven: boolean;
+
   @OneToMany(() => PasswordReset, (passwordReset) => passwordReset.user)
   passwordResets: PasswordReset[];
 

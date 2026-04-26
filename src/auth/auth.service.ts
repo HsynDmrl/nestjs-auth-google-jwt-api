@@ -162,10 +162,27 @@ export class AuthService {
       where: { name: 'user' },
     });
 
+    if (!createUserDto.kvkkConsentGiven) {
+      throw new HttpException(
+        'KVKK açık rızası olmadan kayıt tamamlanamaz.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    if (!createUserDto.kvkkConsentVersion?.trim()) {
+      throw new HttpException(
+        'KVKK onay metin versiyonu zorunludur.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const newUser = await this.usersService.create({
       ...createUserDto,
       password: hashedPassword,
       emailConfirmed: false,
+      kvkkConsentGiven: true,
+      kvkkConsentAt: new Date(),
+      kvkkConsentVersion: createUserDto.kvkkConsentVersion.trim(),
+      marketingConsentGiven: createUserDto.marketingConsentGiven ?? false,
     });
 
     newUser.roles = [userRole];
@@ -398,6 +415,10 @@ export class AuthService {
         surname: req.user.lastName,
         password: null,
         emailConfirmed: true,
+        kvkkConsentGiven: false,
+        kvkkConsentAt: undefined,
+        kvkkConsentVersion: undefined,
+        marketingConsentGiven: false,
         roles: [userRole],
       });
 

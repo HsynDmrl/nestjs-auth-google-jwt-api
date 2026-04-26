@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsEmail,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Length,
 } from 'class-validator';
@@ -54,4 +55,20 @@ export class CreateUserDto {
   readonly password: string;
 
   readonly roles?: Role[];
+
+  @IsOptional()
+  @IsBoolean()
+  readonly kvkkConsentGiven?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 50)
+  readonly kvkkConsentVersion?: string;
+
+  @IsOptional()
+  readonly kvkkConsentAt?: Date;
+
+  @IsOptional()
+  @IsBoolean()
+  readonly marketingConsentGiven?: boolean;
 }
