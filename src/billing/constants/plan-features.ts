@@ -16,7 +16,7 @@ export const PLAN_FEATURES: Record<PlanCode, PlanFeatureSet> = {
   [PlanCode.FREE]: {
     maxMembersPerBranch: 2,
     tipboxEnabled: true,
-    shiftManagementEnabled: false,
+    shiftManagementEnabled: true,
     reportExportEnabled: false,
     readOnlyMode: false,
     canCreateBranch: false,
