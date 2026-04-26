@@ -78,7 +78,7 @@ describe('BillingService', () => {
     subscriptionRepository.findOne.mockResolvedValue(null);
 
     await expect(
-      service.assertTenantActionAllowed('company-1', 'create_team'),
+      service.assertTenantActionAllowed('company-1', 'create_branch'),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 });
