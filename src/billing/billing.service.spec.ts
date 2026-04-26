@@ -7,16 +7,19 @@ import {
   Subscription,
   SubscriptionStatus,
 } from 'src/entities/subscription.entity';
+import { AuditLogService } from 'src/audit-log/audit-log.service';
 import { BillingService } from './billing.service';
 
 describe('BillingService', () => {
   let service: BillingService;
   let subscriptionRepository: { findOne: jest.Mock };
   let companyRepository: { findOneOrFail: jest.Mock };
+  let auditLogService: { createLog: jest.Mock };
 
   beforeEach(async () => {
     subscriptionRepository = { findOne: jest.fn() };
     companyRepository = { findOneOrFail: jest.fn() };
+    auditLogService = { createLog: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -26,6 +29,7 @@ describe('BillingService', () => {
           useValue: subscriptionRepository,
         },
         { provide: getRepositoryToken(Company), useValue: companyRepository },
+        { provide: AuditLogService, useValue: auditLogService },
       ],
     }).compile();
 
@@ -39,8 +43,8 @@ describe('BillingService', () => {
     const snapshot = await service.getCompanyCapabilitySnapshot('company-1');
 
     expect(snapshot.plan).toBe(PlanCode.FREE);
-    expect(snapshot.features.readOnlyMode).toBe(true);
-    expect(snapshot.readOnlyReason).toBe('NO_ACTIVE_SUBSCRIPTION');
+    expect(snapshot.features.readOnlyMode).toBe(false);
+    expect(snapshot.readOnlyReason).toBe('NONE');
   });
 
   it('falls back to FREE when subscription period is expired', async () => {

@@ -1,4 +1,12 @@
-import { Controller, Get, HttpCode, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Query,
+  UseGuards,
+  ValidationPipe,
+} from '@nestjs/common';
 import { AuditLogService } from './audit-log.service';
 import { AuditLog } from 'src/entities/audit-log.entity';
 import { UserActivity } from 'src/entities/user-activity.entity';
@@ -13,6 +21,8 @@ import {
   ApiParam,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginatedResponse } from 'src/common/interfaces/paginated-response.interface';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Audit Logs')
@@ -33,8 +43,11 @@ export class AuditLogController {
     description: 'Loglar başarıyla alındı.',
     type: [AuditLog],
   })
-  async findAll(): Promise<AuditLog[]> {
-    return this.auditLogService.findAll();
+  async findAll(
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<AuditLog>> {
+    return this.auditLogService.findAll(query);
   }
 
   @Get('user-activities')
@@ -49,8 +62,11 @@ export class AuditLogController {
     description: 'Kullanıcı aktiviteleri başarıyla alındı.',
     type: [UserActivity],
   })
-  async findAllUserActivities(): Promise<UserActivity[]> {
-    return this.auditLogService.findAllUserActivities();
+  async findAllUserActivities(
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<UserActivity>> {
+    return this.auditLogService.findAllUserActivities(query);
   }
 
   @Get('user-activities/:userId')
@@ -72,7 +88,9 @@ export class AuditLogController {
   })
   async findUserActivities(
     @Param('userId') userId: string,
-  ): Promise<UserActivity[]> {
-    return this.auditLogService.findUserActivitiesByUserId(userId);
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<UserActivity>> {
+    return this.auditLogService.findUserActivitiesByUserId(userId, query);
   }
 }

@@ -2,6 +2,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BillingService } from 'src/billing/billing.service';
+import { AuditLogService } from 'src/audit-log/audit-log.service';
 import { Branch } from 'src/entities/branch.entity';
 import { Company } from 'src/entities/company.entity';
 import { Membership } from 'src/entities/membership.entity';
@@ -16,12 +17,14 @@ describe('TenancyService', () => {
   let branchRepository: { findOne: jest.Mock };
   let membershipRepository: { findOne: jest.Mock };
   let billingService: { assertTenantActionAllowed: jest.Mock };
+  let auditLogService: { createLog: jest.Mock };
 
   beforeEach(async () => {
     teamRepository = { findOne: jest.fn() };
     branchRepository = { findOne: jest.fn() };
     membershipRepository = { findOne: jest.fn() };
     billingService = { assertTenantActionAllowed: jest.fn() };
+    auditLogService = { createLog: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -40,6 +43,7 @@ describe('TenancyService', () => {
         },
         { provide: getRepositoryToken(User), useValue: {} },
         { provide: BillingService, useValue: billingService },
+        { provide: AuditLogService, useValue: auditLogService },
         {
           provide: DataSource,
           useValue: {

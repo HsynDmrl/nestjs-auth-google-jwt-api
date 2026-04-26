@@ -6,6 +6,12 @@ import { User } from 'src/entities/user.entity';
 import { Repository } from 'typeorm';
 import * as requestIp from 'request-ip';
 import * as geoip from 'geoip-lite';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginatedResponse } from 'src/common/interfaces/paginated-response.interface';
+import {
+  buildPaginationMeta,
+  normalizePagination,
+} from 'src/common/utils/pagination.util';
 
 @Injectable()
 export class AuditLogService {
@@ -16,8 +22,19 @@ export class AuditLogService {
     private userActivityRepository: Repository<UserActivity>,
   ) {}
 
-  async findAll(): Promise<AuditLog[]> {
-    return this.auditLogRepository.find();
+  async findAll(
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<AuditLog>> {
+    const { page, limit, skip } = normalizePagination(query.page, query.limit);
+    const [data, total] = await this.auditLogRepository.findAndCount({
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' },
+    });
+    return {
+      data,
+      meta: buildPaginationMeta(page, limit, total),
+    };
   }
 
   async createLog(
@@ -61,17 +78,38 @@ export class AuditLogService {
     return this.userActivityRepository.save(userActivity);
   }
 
-  async findAllUserActivities(): Promise<UserActivity[]> {
-    return this.userActivityRepository.find({
-      relations: ['user'], // Kullanıcı ilişkisini dahil et
+  async findAllUserActivities(
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<UserActivity>> {
+    const { page, limit, skip } = normalizePagination(query.page, query.limit);
+    const [data, total] = await this.userActivityRepository.findAndCount({
+      relations: ['user'],
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' },
     });
+    return {
+      data,
+      meta: buildPaginationMeta(page, limit, total),
+    };
   }
 
-  async findUserActivitiesByUserId(userId: string): Promise<UserActivity[]> {
-    return this.userActivityRepository.find({
-      where: { user: { id: userId } }, // Sadece JWT'den alınan kimlik kullanılır
+  async findUserActivitiesByUserId(
+    userId: string,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<UserActivity>> {
+    const { page, limit, skip } = normalizePagination(query.page, query.limit);
+    const [data, total] = await this.userActivityRepository.findAndCount({
+      where: { user: { id: userId } },
       relations: ['user'],
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' },
     });
+    return {
+      data,
+      meta: buildPaginationMeta(page, limit, total),
+    };
   }
 
   // Başarısız giriş denemesini kaydetme
