@@ -143,7 +143,111 @@ Global API prefix: `/v1`
 
 ---
 
-## 6) Admin Panel Backend Sözleşmesi
+## 6) API Endpointleri (Detaylı)
+
+> Tüm endpointler global prefix ile çalışır: `/v1`
+
+### App
+- `GET /v1/` → Sağlık kontrolü/örnek cevap (`Hello World!`)
+
+### Auth (`/v1/auth`)
+- `POST /v1/auth/login` → E-posta/şifre ile giriş (`x-device-id` zorunlu)
+- `POST /v1/auth/register` → Yeni kullanıcı kaydı (KVKK onayı + versiyon zorunlu)
+- `POST /v1/auth/refresh` → Refresh token ile access token yenileme (`x-device-id`, `user_refresh_token` yetkisi)
+- `POST /v1/auth/logout-all` → Tüm cihaz oturumlarını kapatır (JWT)
+- `POST /v1/auth/delete-account` → KVKK uyumlu hesap silme/anonimleştirme (JWT)
+- `GET /v1/auth/confirm/:token` → E-posta doğrulama
+- `POST /v1/auth/change-password` → Şifre değiştir (JWT + `user_change_password`)
+- `POST /v1/auth/forgot-password` → Şifre sıfırlama linki gönderir
+- `POST /v1/auth/reset-password/:token` → Şifre sıfırla
+
+### Google Auth (`/v1/auth/google`)
+- `GET /v1/auth/google` → Google OAuth başlatır
+- `GET /v1/auth/google/redirect` → Google dönüş callback’i
+
+### Users (`/v1/users`)
+- `PUT /v1/users/:id` → Profil güncelle (`user_edit_profile`)
+- `DELETE /v1/users/soft/:id` → Soft delete (`user_delete_profile`)
+- `GET /v1/users/email/:email` → E-posta ile kullanıcı getir (`user_read_profile`)
+
+### Admin Users (`/v1/admin/users`)
+- `GET /v1/admin/users/active` → Aktif kullanıcılar (`admin_read_users`)
+- `GET /v1/admin/users/inactive` → Pasif kullanıcılar (`admin_read_users`)
+- `GET /v1/admin/users/getAll` → Tüm kullanıcılar (`admin_read_users`)
+- `GET /v1/admin/users/getById/:id` → Kullanıcı detayı (`admin_read_users`)
+- `POST /v1/admin/users/add` → Yeni kullanıcı oluştur (`admin_create_user`)
+- `PUT /v1/admin/users/update/:id` → Kullanıcı güncelle (`admin_edit_user`)
+- `DELETE /v1/admin/users/soft/:id` → Soft delete (`admin_delete_user`)
+- `PUT /v1/admin/users/restore/:id` → Soft delete geri yükle (`admin_create_user`)
+- `DELETE /v1/admin/users/hard/:id` → Kalıcı sil (`admin_delete_user`)
+
+### Admin Roles (`/v1/admin/roles`)
+- `GET /v1/admin/roles/active` → Aktif roller (`admin_read_roles`)
+- `GET /v1/admin/roles/inactive` → Pasif roller (`admin_read_roles`)
+- `GET /v1/admin/roles/getAll` → Tüm roller (`admin_read_roles`)
+- `GET /v1/admin/roles/getById/:id` → Rol detayı (`admin_read_roles`)
+- `POST /v1/admin/roles/add` → Yeni rol (`admin_create_role`)
+- `PUT /v1/admin/roles/update/:id` → Rol güncelle (`admin_edit_role`)
+- `DELETE /v1/admin/roles/soft/:id` → Soft delete (`admin_delete_role`)
+- `PUT /v1/admin/roles/restore/:id` → Soft delete geri yükle (`admin_create_role`)
+- `DELETE /v1/admin/roles/hard/:id` → Kalıcı sil (`admin_delete_role`)
+
+### Admin Permissions (`/v1/permissions`)
+- `GET /v1/permissions/active` → Aktif yetkiler (`admin_read_roles`)
+- `GET /v1/permissions/inactive` → Pasif yetkiler (`admin_read_roles`)
+- `GET /v1/permissions/getAll` → Tüm yetkiler (`admin_read_roles`)
+- `GET /v1/permissions/getById/:id` → Yetki detayı (`admin_read_roles`)
+- `POST /v1/permissions/add` → Yeni yetki (`admin_create_role`)
+- `PUT /v1/permissions/update/:id` → Yetki güncelle (`admin_edit_role`)
+- `DELETE /v1/permissions/soft/:id` → Soft delete (`admin_delete_role`)
+- `PUT /v1/permissions/restore/:id` → Soft delete geri yükle (`admin_create_role`)
+- `DELETE /v1/permissions/hard/:id` → Kalıcı sil (`admin_delete_role`)
+
+### Admin Dashboard (`/v1/admin/dashboard`)
+- `GET /v1/admin/dashboard/summary` → Admin panel özet metrikleri (`admin_read_users`)
+
+### Billing (`/v1/admin/billing`)
+- `POST /v1/admin/billing/subscriptions` → Company için abonelik/paket tanımlar (`admin_read_users`)
+- `GET /v1/admin/billing/companies/:companyId/features` → Şirket plan özellikleri (`admin_read_users`)
+
+### Tenancy (`/v1/tenancy`)
+- `POST /v1/tenancy/companies` → Yeni company oluşturur (`admin_read_users`)
+- `POST /v1/tenancy/branches` → Şube oluşturur
+- `POST /v1/tenancy/teams` → Takım oluşturur
+- `POST /v1/tenancy/memberships` → Kullanıcıyı takıma ekler
+- `POST /v1/tenancy/teams/move` → Takımı aynı company içinde taşır
+- `GET /v1/tenancy/companies/:companyId/capabilities` → Plan/capability snapshot (`x-branch-id`)
+- `GET /v1/tenancy/context/active-branch` → Aktif branch context (`x-branch-id`)
+
+### Audit Logs (`/v1/audit-logs`)
+- `GET /v1/audit-logs` → Tüm audit logları (`admin_read_users`)
+- `GET /v1/audit-logs/user-activities` → Tüm kullanıcı aktiviteleri (`admin_read_users`)
+- `GET /v1/audit-logs/user-activities/:userId` → Kullanıcı aktiviteleri (kullanıcı veya admin)
+
+### Captcha (`/v1/captcha`)
+- `GET /v1/captcha/generate` → Captcha üretir
+- `POST /v1/captcha/verify` → Captcha doğrular
+
+### Tip Sessions (`/v1/tip-sessions`)
+- `POST /v1/tip-sessions` → Yeni tip oturumu (`x-branch-id`, `tipboxEnabled`)
+- `GET /v1/tip-sessions/:sessionId` → Tip oturumu detayı (`x-branch-id`)
+
+### Tip Entries (`/v1/tip-entries`)
+- `POST /v1/tip-entries` → Tip giriş kaydı
+
+### Distributions (`/v1/distributions`)
+- `POST /v1/distributions/run` → Tip oturum dağıtımı
+
+### Workforce (`/v1/workforce`)
+- `POST /v1/workforce/shift-templates` → Vardiya şablonu oluşturur (`x-branch-id`, `shiftManagementEnabled`)
+- `POST /v1/workforce/weekly-schedules` → Haftalık plan oluşturur (`x-branch-id`, `shiftManagementEnabled`)
+- `POST /v1/workforce/assignments` → Kullanıcıyı haftalık plana atar (`x-branch-id`, `shiftManagementEnabled`)
+- `GET /v1/workforce/weekly-schedules/:scheduleId` → Haftalık plan detayları (`x-branch-id`, `shiftManagementEnabled`)
+- `GET /v1/workforce/weekly-schedules/:scheduleId/report` → Haftalık rapor (`x-branch-id`, `shiftManagementEnabled`)
+
+---
+
+## 7) Admin Panel Backend Sözleşmesi
 
 Admin web paneli için hazır endpoint grupları:
 
@@ -162,7 +266,7 @@ Tüm admin endpoint'leri JWT + permission guard ile korunur.
 
 ---
 
-## 7) Test ve Kalite Komutları
+## 8) Test ve Kalite Komutları
 
 ```bash
 npm run build
@@ -176,7 +280,7 @@ Bu repoda temel unit test yapısı mevcuttur ve yeni testler eklenmiştir:
 
 ---
 
-## 8) Proje Yapısı (Özet)
+## 9) Proje Yapısı (Özet)
 
 - `src/auth` → auth, token, google, email
 - `src/admin` → admin users/roles/permissions/dashboard
@@ -189,7 +293,7 @@ Bu repoda temel unit test yapısı mevcuttur ve yeni testler eklenmiştir:
 
 ---
 
-## 9) Güvenlik Notları
+## 10) Güvenlik Notları
 
 - Access token kısa ömürlü (mobil için uygun)
 - Refresh token hashli saklanır
@@ -200,6 +304,6 @@ Bu repoda temel unit test yapısı mevcuttur ve yeni testler eklenmiştir:
 
 ---
 
-## 10) Not
+## 11) Not
 
 Bu backend, Expo uygulamasından bağımsız geliştirmeye uygundur; Expo istemcisi farklı repoda geliştirilip sadece bu API sözleşmelerine bağlanabilir.
