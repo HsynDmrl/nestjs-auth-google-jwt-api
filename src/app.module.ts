@@ -23,6 +23,7 @@ import { TenancyModule } from './tenancy/tenancy.module';
 import { BillingModule } from './billing/billing.module';
 import { WorkforceModule } from './workforce/workforce.module';
 import { AdminDashboardModule } from './admin/dashboard/admin-dashboard.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { AdminDashboardModule } from './admin/dashboard/admin-dashboard.module';
     BillingModule,
     WorkforceModule,
     AdminDashboardModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

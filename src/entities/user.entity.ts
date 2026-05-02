@@ -6,6 +6,8 @@ import { EmailConfirmation } from './email-confirmation.entity';
 import { PasswordReset } from './password-reset.entity';
 import { UserActivity } from './user-activity.entity';
 import { Membership } from './membership.entity';
+import { Notification } from './notification.entity';
+import { NotificationPreference } from './notification-preference.entity';
 
 @Entity()
 export class User extends BaseEntity {
@@ -57,4 +59,13 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Membership, (membership) => membership.user)
   memberships: Membership[];
+
+  @OneToMany(() => Notification, (notification) => notification.user)
+  notifications: Notification[];
+
+  @OneToMany(
+    () => NotificationPreference,
+    (notificationPreference) => notificationPreference.user,
+  )
+  notificationPreferences: NotificationPreference[];
 }

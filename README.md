@@ -16,6 +16,7 @@ Bu proje, **NestJS + PostgreSQL + TypeORM** tabanlı, mobil (Expo) ve web admin 
 - Audit log interceptor
 - Captcha + failed login lockout
 - TipBox oturum/katılımcı/dağıtım akışları
+- Bildirim altyapısı (in-app/push/email, okunma, mute, maliyet takibi)
 - Multi-tenant foundation:
   - `Company -> Branch -> Team -> Membership`
   - branch context (`x-branch-id`) ve tenant guard
@@ -60,6 +61,11 @@ EMAIL_PORT=your-email-smtp-port
 EMAIL_USER=your-email-username
 EMAIL_PASS=your-email-password
 APP_URL=your-application-url
+
+NOTIFICATION_COST_CURRENCY=USD
+NOTIFICATION_COST_IN_APP_MINOR_UNIT=0
+NOTIFICATION_COST_PUSH_MINOR_UNIT=1
+NOTIFICATION_COST_EMAIL_MINOR_UNIT=2
 
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
@@ -141,6 +147,11 @@ Global API prefix: `/v1`
 - Tip session/entry/distribution akışları
 - Branch/team bağlamı zorunluluğu
 
+### Notifications Modülü
+- In-app, push ve email bildirim kanalları
+- Okundu/okunmadı işaretleme ve sayfalı listeleme
+- Kanal bazlı sessize alma (mute) ve maliyet hesaplama
+
 ---
 
 ## 6) API Endpointleri (Detaylı)
@@ -198,6 +209,14 @@ Global API prefix: `/v1`
 - `GET /v1/permissions/getAll` → Tüm yetkiler (`admin_read_roles`)
 - `GET /v1/permissions/getById/:id` → Yetki detayı (`admin_read_roles`)
 - `POST /v1/permissions/add` → Yeni yetki (`admin_create_role`)
+
+### Notifications (`/v1/notifications`)
+- `POST /v1/notifications` → Bildirim oluşturur/gönderir (`admin_send_notifications`)
+- `GET /v1/notifications` → Kullanıcının bildirimlerini listeler (JWT)
+- `PATCH /v1/notifications/:notificationId/read` → Okundu işaretle (JWT)
+- `PATCH /v1/notifications/:notificationId/unread` → Okunmadı işaretle (JWT)
+- `GET /v1/notifications/preferences` → Bildirim tercihlerini getir (JWT)
+- `PUT /v1/notifications/preferences` → Bildirim tercihlerini güncelle (JWT)
 - `PUT /v1/permissions/update/:id` → Yetki güncelle (`admin_edit_role`)
 - `DELETE /v1/permissions/soft/:id` → Soft delete (`admin_delete_role`)
 - `PUT /v1/permissions/restore/:id` → Soft delete geri yükle (`admin_create_role`)

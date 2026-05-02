@@ -33,6 +33,7 @@ export class SeedService implements OnModuleInit {
       'admin_create_role',
       'admin_edit_role',
       'admin_delete_role',
+      'admin_send_notifications',
       'user_refresh_token',
     ];
 
