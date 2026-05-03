@@ -13,6 +13,7 @@ import { UpsertSubscriptionDto } from './dto/upsert-subscription.dto';
 import { NotFoundException } from '@nestjs/common';
 import { AuditLogService } from 'src/audit-log/audit-log.service';
 import { AuditLogType } from 'src/entities/audit-log.entity';
+import { CompanySubscriptionStatusDto } from './dto/company-subscription-status.dto';
 
 export type TenantAction =
   | 'create_branch'
@@ -127,6 +128,44 @@ export class BillingService {
       plan: currentSubscription.planCode,
       features: PLAN_FEATURES[currentSubscription.planCode],
       readOnlyReason: 'NONE',
+    };
+  }
+
+  async getCompanySubscriptionStatus(
+    companyId: string,
+  ): Promise<CompanySubscriptionStatusDto> {
+    await this.companyRepository.findOneOrFail({ where: { id: companyId } });
+    const subscription = await this.subscriptionRepository.findOne({
+      where: { company: { id: companyId } },
+      order: { periodEndAt: 'DESC' },
+    });
+
+    if (!subscription) {
+      return {
+        companyId,
+        planCode: PlanCode.FREE,
+        status: SubscriptionStatus.EXPIRED,
+      };
+    }
+
+    return {
+      companyId,
+      planCode: subscription.planCode,
+      status:
+        subscription.periodEndAt && subscription.periodEndAt < new Date()
+          ? SubscriptionStatus.EXPIRED
+          : subscription.status,
+      platform: subscription.platform,
+      productId: subscription.productId,
+      transactionId: subscription.transactionId,
+      originalTransactionId: subscription.originalTransactionId,
+      periodStartAt: subscription.periodStartAt?.toISOString(),
+      periodEndAt: subscription.periodEndAt?.toISOString(),
+      environment: subscription.environment,
+      renewalStatus: subscription.renewalStatus,
+      autoRenewing: subscription.autoRenewing,
+      lastVerifiedAt: subscription.lastVerifiedAt?.toISOString(),
+      providerSubscriptionId: subscription.providerSubscriptionId,
     };
   }
 

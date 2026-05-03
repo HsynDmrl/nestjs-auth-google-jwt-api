@@ -72,6 +72,22 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_CALLBACK_URL=your-google-callback-url
 
 SECRET_KEY=your-session-secret
+
+BILLING_DEMO_MODE=true
+BILLING_GOOGLE_PLAY_PACKAGE_NAME=com.example.app
+BILLING_APP_STORE_BUNDLE_ID=com.example.app
+BILLING_APP_STORE_SHARED_SECRET=your-app-store-shared-secret
+BILLING_GOOGLE_PLAY_WEBHOOK_SECRET=your-google-play-webhook-secret
+BILLING_APP_STORE_WEBHOOK_SECRET=your-app-store-webhook-secret
+
+BILLING_GOOGLE_PLAY_PRODUCT_ID_FREE=demo.google.free
+BILLING_GOOGLE_PLAY_PRODUCT_ID_STARTER=demo.google.starter
+BILLING_GOOGLE_PLAY_PRODUCT_ID_PRO=demo.google.pro
+BILLING_GOOGLE_PLAY_PRODUCT_ID_ENTERPRISE=demo.google.enterprise
+BILLING_APP_STORE_PRODUCT_ID_FREE=demo.apple.free
+BILLING_APP_STORE_PRODUCT_ID_STARTER=demo.apple.starter
+BILLING_APP_STORE_PRODUCT_ID_PRO=demo.apple.pro
+BILLING_APP_STORE_PRODUCT_ID_ENTERPRISE=demo.apple.enterprise
 ```
 
 ### Header Gereksinimleri
@@ -226,8 +242,18 @@ Global API prefix: `/v1`
 - `GET /v1/admin/dashboard/summary` → Admin panel özet metrikleri (`admin_read_users`)
 
 ### Billing (`/v1/admin/billing`)
-- `POST /v1/admin/billing/subscriptions` → Company için abonelik/paket tanımlar (`admin_read_users`)
-- `GET /v1/admin/billing/companies/:companyId/features` → Şirket plan özellikleri (`admin_read_users`)
+- `POST /v1/admin/billing/subscriptions` → Company için abonelik/paket tanımlar (`admin_manage_billing`)
+- `GET /v1/admin/billing/companies/:companyId/features` → Şirket plan özellikleri (`admin_manage_billing`)
+- `GET /v1/admin/billing/companies/:companyId/subscription-status` → Şirket abonelik durumu (`admin_manage_billing`)
+
+### Store Billing (`/v1/billing`)
+- `POST /v1/billing/store/verify` → Satın alma doğrulama (`billing_verify_purchase`)
+- `POST /v1/billing/store/restore` → Abonelik restore (`billing_restore_subscription`)
+- `GET /v1/billing/companies/:companyId/subscription-status` → Şirket abonelik durumu (`billing_read_subscription_status`)
+- `POST /v1/billing/webhooks/google-play` → Google Play server notification webhook
+- `POST /v1/billing/webhooks/app-store` → App Store server notification webhook
+
+Webhook imzası aktifse `x-webhook-signature` header içinde HMAC-SHA256 hex beklenir.
 
 ### Tenancy (`/v1/tenancy`)
 - `POST /v1/tenancy/companies` → Yeni company oluşturur (`admin_read_users`)

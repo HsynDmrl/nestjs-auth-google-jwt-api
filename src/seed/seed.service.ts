@@ -26,6 +26,9 @@ export class SeedService implements OnModuleInit {
       'user_delete_profile',
       'user_change_password',
       'user_refresh_token',
+      'billing_verify_purchase',
+      'billing_restore_subscription',
+      'billing_read_subscription_status',
     ];
 
     const adminRolePermissions = [
@@ -34,6 +37,7 @@ export class SeedService implements OnModuleInit {
       'admin_edit_role',
       'admin_delete_role',
       'admin_send_notifications',
+      'admin_manage_billing',
       'user_refresh_token',
     ];
 
