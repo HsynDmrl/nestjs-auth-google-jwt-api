@@ -47,7 +47,10 @@ export class StoreBillingService {
     private readonly googlePlayProvider: GooglePlayProvider,
     private readonly appStoreProvider: AppStoreProvider,
   ) {
-    this.providers.set(this.googlePlayProvider.platform, this.googlePlayProvider);
+    this.providers.set(
+      this.googlePlayProvider.platform,
+      this.googlePlayProvider,
+    );
     this.providers.set(this.appStoreProvider.platform, this.appStoreProvider);
   }
 
@@ -64,7 +67,9 @@ export class StoreBillingService {
       purchaseToken: dto.purchaseToken,
       receipt: dto.receipt,
       environment: dto.environment,
-      periodStartAt: dto.periodStartAt ? new Date(dto.periodStartAt) : undefined,
+      periodStartAt: dto.periodStartAt
+        ? new Date(dto.periodStartAt)
+        : undefined,
       periodEndAt: dto.periodEndAt ? new Date(dto.periodEndAt) : undefined,
     });
 
@@ -117,7 +122,9 @@ export class StoreBillingService {
       status: dto.status,
       renewalStatus: dto.renewalStatus,
       autoRenewing: dto.autoRenewing,
-      periodStartAt: dto.periodStartAt ? new Date(dto.periodStartAt) : undefined,
+      periodStartAt: dto.periodStartAt
+        ? new Date(dto.periodStartAt)
+        : undefined,
       periodEndAt: dto.periodEndAt ? new Date(dto.periodEndAt) : undefined,
       rawPayload: dto.rawPayload,
     });
@@ -197,7 +204,8 @@ export class StoreBillingService {
 
     if (
       activeSubscription &&
-      (!matchingSubscription || matchingSubscription.id !== activeSubscription.id)
+      (!matchingSubscription ||
+        matchingSubscription.id !== activeSubscription.id)
     ) {
       activeSubscription.status = SubscriptionStatus.CANCELED;
       await this.subscriptionRepository.save(activeSubscription);
@@ -370,9 +378,7 @@ export class StoreBillingService {
       throw new BadRequestException('Webhook imzası eksik.');
     }
 
-    const digest = createHmac('sha256', secret)
-      .update(payload)
-      .digest('hex');
+    const digest = createHmac('sha256', secret).update(payload).digest('hex');
 
     if (
       digest.length !== signature.length ||

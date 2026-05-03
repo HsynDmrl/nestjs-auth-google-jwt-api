@@ -1,5 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
-import { PlanCode, SubscriptionPlatform } from 'src/entities/subscription.entity';
+import {
+  PlanCode,
+  SubscriptionPlatform,
+} from 'src/entities/subscription.entity';
 import { GooglePlayProvider } from './google-play.provider';
 
 describe('GooglePlayProvider', () => {

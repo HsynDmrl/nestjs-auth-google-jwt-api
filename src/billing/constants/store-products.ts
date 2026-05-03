@@ -1,4 +1,7 @@
-import { PlanCode, SubscriptionPlatform } from 'src/entities/subscription.entity';
+import {
+  PlanCode,
+  SubscriptionPlatform,
+} from 'src/entities/subscription.entity';
 
 const DEFAULT_STORE_PRODUCT_IDS: Record<
   SubscriptionPlatform,

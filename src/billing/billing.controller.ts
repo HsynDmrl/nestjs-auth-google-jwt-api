@@ -8,7 +8,12 @@ import {
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Permissions } from 'src/auth/decorators/permissions/permissions.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth-guard/jwt-auth.guard';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';

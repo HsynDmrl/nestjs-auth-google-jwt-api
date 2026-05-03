@@ -27,8 +27,14 @@ describe('StoreBillingService', () => {
   let companyRepository: { findOne: jest.Mock; findOneOrFail: jest.Mock };
   let membershipRepository: { findOne: jest.Mock };
   let auditLogService: { createLog: jest.Mock };
-  let googlePlayProvider: { platform: SubscriptionPlatform; verifyPurchase: jest.Mock };
-  let appStoreProvider: { platform: SubscriptionPlatform; verifyPurchase: jest.Mock };
+  let googlePlayProvider: {
+    platform: SubscriptionPlatform;
+    verifyPurchase: jest.Mock;
+  };
+  let appStoreProvider: {
+    platform: SubscriptionPlatform;
+    verifyPurchase: jest.Mock;
+  };
 
   beforeEach(async () => {
     subscriptionRepository = {
@@ -71,7 +77,10 @@ describe('StoreBillingService', () => {
           useValue: purchaseRepository,
         },
         { provide: getRepositoryToken(Company), useValue: companyRepository },
-        { provide: getRepositoryToken(Membership), useValue: membershipRepository },
+        {
+          provide: getRepositoryToken(Membership),
+          useValue: membershipRepository,
+        },
         { provide: AuditLogService, useValue: auditLogService },
         { provide: GooglePlayProvider, useValue: googlePlayProvider },
         { provide: AppStoreProvider, useValue: appStoreProvider },
