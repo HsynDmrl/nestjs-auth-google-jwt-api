@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { getStoreProductId } from '../constants/store-products';
 import {
   PlanCode,
   SubscriptionPlatform,
@@ -14,7 +15,10 @@ describe('GooglePlayProvider', () => {
     const provider = new GooglePlayProvider();
 
     const result = await provider.verifyPurchase({
-      productId: 'demo.google.pro',
+      productId: getStoreProductId(
+        SubscriptionPlatform.GOOGLE_PLAY,
+        PlanCode.PRO,
+      ),
       transactionId: 'GPA.1234',
     });
 

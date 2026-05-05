@@ -7,7 +7,10 @@ import {
   SubscriptionStatus,
 } from 'src/entities/subscription.entity';
 
-export class CompanySubscriptionStatusDto {
+export class AdminSubscriptionResponseDto {
+  @ApiProperty({ example: 'a290f1ee-6c54-4b01-90e6-d701748f0851' })
+  id: string;
+
   @ApiProperty({ example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' })
   companyId: string;
 
@@ -49,6 +52,15 @@ export class CompanySubscriptionStatusDto {
   @ApiPropertyOptional({ example: '2026-04-15T10:15:00.000Z' })
   lastVerifiedAt?: string | null;
 
+  @ApiPropertyOptional({ example: 'stripe' })
+  provider?: string | null;
+
   @ApiPropertyOptional({ example: 'sub_12345' })
   providerSubscriptionId?: string | null;
+
+  @ApiProperty({ example: '2026-04-01T00:00:00.000Z' })
+  createdAt: string;
+
+  @ApiProperty({ example: '2026-04-10T00:00:00.000Z' })
+  updatedAt: string;
 }

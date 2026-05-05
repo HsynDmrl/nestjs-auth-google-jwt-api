@@ -12,6 +12,7 @@ import {
   SubscriptionStatus,
 } from 'src/entities/subscription.entity';
 import { SubscriptionPurchase } from 'src/entities/subscription-purchase.entity';
+import { getStoreProductId } from './constants/store-products';
 import { AppStoreProvider } from './providers/app-store.provider';
 import { GooglePlayProvider } from './providers/google-play.provider';
 import { StoreBillingService } from './store-billing.service';
@@ -114,7 +115,10 @@ describe('StoreBillingService', () => {
     googlePlayProvider.verifyPurchase.mockResolvedValue({
       planCode: PlanCode.PRO,
       platform: SubscriptionPlatform.GOOGLE_PLAY,
-      productId: 'demo.google.pro',
+      productId: getStoreProductId(
+        SubscriptionPlatform.GOOGLE_PLAY,
+        PlanCode.PRO,
+      ),
       transactionId: 'GPA.1234',
       originalTransactionId: 'GPA.1234',
       purchaseToken: 'token',
@@ -137,7 +141,10 @@ describe('StoreBillingService', () => {
       {
         companyId: 'company-1',
         platform: SubscriptionPlatform.GOOGLE_PLAY,
-        productId: 'demo.google.pro',
+        productId: getStoreProductId(
+          SubscriptionPlatform.GOOGLE_PLAY,
+          PlanCode.PRO,
+        ),
         transactionId: 'GPA.1234',
       },
       'user-1',

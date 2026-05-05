@@ -3,24 +3,6 @@ import {
   SubscriptionPlatform,
 } from 'src/entities/subscription.entity';
 
-const DEFAULT_STORE_PRODUCT_IDS: Record<
-  SubscriptionPlatform,
-  Record<PlanCode, string>
-> = {
-  [SubscriptionPlatform.GOOGLE_PLAY]: {
-    [PlanCode.FREE]: 'demo.google.free',
-    [PlanCode.STARTER]: 'demo.google.starter',
-    [PlanCode.PRO]: 'demo.google.pro',
-    [PlanCode.ENTERPRISE]: 'demo.google.enterprise',
-  },
-  [SubscriptionPlatform.APP_STORE]: {
-    [PlanCode.FREE]: 'demo.apple.free',
-    [PlanCode.STARTER]: 'demo.apple.starter',
-    [PlanCode.PRO]: 'demo.apple.pro',
-    [PlanCode.ENTERPRISE]: 'demo.apple.enterprise',
-  },
-};
-
 const PRODUCT_ENV_KEYS: Record<
   SubscriptionPlatform,
   Record<PlanCode, string>
@@ -39,12 +21,51 @@ const PRODUCT_ENV_KEYS: Record<
   },
 };
 
+export interface StoreProductMapping {
+  platform: SubscriptionPlatform;
+  planCode: PlanCode;
+  productId: string;
+  envKey: string;
+  source: 'env' | 'default';
+}
+
+const getDefaultAppIdentifier = (platform: SubscriptionPlatform): string => {
+  if (platform === SubscriptionPlatform.GOOGLE_PLAY) {
+    return process.env.BILLING_GOOGLE_PLAY_PACKAGE_NAME ?? 'com.example.app';
+  }
+  return process.env.BILLING_APP_STORE_BUNDLE_ID ?? 'com.example.app';
+};
+
+const buildDefaultProductId = (
+  platform: SubscriptionPlatform,
+  planCode: PlanCode,
+): string => {
+  const appIdentifier = getDefaultAppIdentifier(platform);
+  return `${appIdentifier}.subscription.${planCode.toLowerCase()}.monthly`;
+};
+
 export const getStoreProductId = (
   platform: SubscriptionPlatform,
   planCode: PlanCode,
 ): string => {
   const envKey = PRODUCT_ENV_KEYS[platform][planCode];
-  return process.env[envKey] ?? DEFAULT_STORE_PRODUCT_IDS[platform][planCode];
+  return process.env[envKey] ?? buildDefaultProductId(platform, planCode);
+};
+
+export const listStoreProductMappings = (): StoreProductMapping[] => {
+  return Object.values(SubscriptionPlatform).flatMap((platform) =>
+    Object.values(PlanCode).map((planCode) => {
+      const envKey = PRODUCT_ENV_KEYS[platform][planCode];
+      const envValue = process.env[envKey];
+      return {
+        platform,
+        planCode,
+        productId: envValue ?? buildDefaultProductId(platform, planCode),
+        envKey,
+        source: envValue ? 'env' : 'default',
+      };
+    }),
+  );
 };
 
 export const resolvePlanByProductId = (

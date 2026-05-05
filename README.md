@@ -80,15 +80,17 @@ BILLING_APP_STORE_SHARED_SECRET=your-app-store-shared-secret
 BILLING_GOOGLE_PLAY_WEBHOOK_SECRET=your-google-play-webhook-secret
 BILLING_APP_STORE_WEBHOOK_SECRET=your-app-store-webhook-secret
 
-BILLING_GOOGLE_PLAY_PRODUCT_ID_FREE=demo.google.free
-BILLING_GOOGLE_PLAY_PRODUCT_ID_STARTER=demo.google.starter
-BILLING_GOOGLE_PLAY_PRODUCT_ID_PRO=demo.google.pro
-BILLING_GOOGLE_PLAY_PRODUCT_ID_ENTERPRISE=demo.google.enterprise
-BILLING_APP_STORE_PRODUCT_ID_FREE=demo.apple.free
-BILLING_APP_STORE_PRODUCT_ID_STARTER=demo.apple.starter
-BILLING_APP_STORE_PRODUCT_ID_PRO=demo.apple.pro
-BILLING_APP_STORE_PRODUCT_ID_ENTERPRISE=demo.apple.enterprise
+BILLING_GOOGLE_PLAY_PRODUCT_ID_FREE=com.example.app.subscription.free.monthly
+BILLING_GOOGLE_PLAY_PRODUCT_ID_STARTER=com.example.app.subscription.starter.monthly
+BILLING_GOOGLE_PLAY_PRODUCT_ID_PRO=com.example.app.subscription.pro.monthly
+BILLING_GOOGLE_PLAY_PRODUCT_ID_ENTERPRISE=com.example.app.subscription.enterprise.monthly
+BILLING_APP_STORE_PRODUCT_ID_FREE=com.example.app.subscription.free.monthly
+BILLING_APP_STORE_PRODUCT_ID_STARTER=com.example.app.subscription.starter.monthly
+BILLING_APP_STORE_PRODUCT_ID_PRO=com.example.app.subscription.pro.monthly
+BILLING_APP_STORE_PRODUCT_ID_ENTERPRISE=com.example.app.subscription.enterprise.monthly
 ```
+
+> Varsayılan ürün ID formatı: `{bundle/package}.subscription.{plan}.monthly`. Env değerleri verilirse bu değerler override edilir.
 
 ### Header Gereksinimleri
 
@@ -245,6 +247,12 @@ Global API prefix: `/v1`
 - `POST /v1/admin/billing/subscriptions` → Company için abonelik/paket tanımlar (`admin_manage_billing`)
 - `GET /v1/admin/billing/companies/:companyId/features` → Şirket plan özellikleri (`admin_manage_billing`)
 - `GET /v1/admin/billing/companies/:companyId/subscription-status` → Şirket abonelik durumu (`admin_manage_billing`)
+- `GET /v1/admin/billing/subscriptions` → Abonelikleri listeler (`admin_manage_billing`)
+- `GET /v1/admin/billing/subscriptions/:subscriptionId` → Abonelik detayı (`admin_manage_billing`)
+- `PUT /v1/admin/billing/subscriptions/:subscriptionId` → Abonelik güncelle (`admin_manage_billing`)
+- `GET /v1/admin/billing/purchases` → Satın alım kayıtları (`admin_manage_billing`)
+- `GET /v1/admin/billing/purchases/:purchaseId` → Satın alım detayı (`admin_manage_billing`)
+- `GET /v1/admin/billing/store-products` → Mağaza ürün eşlemeleri (`admin_manage_billing`)
 
 ### Store Billing (`/v1/billing`)
 - `POST /v1/billing/store/verify` → Satın alma doğrulama (`billing_verify_purchase`)

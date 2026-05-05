@@ -24,7 +24,7 @@ export class StoreWebhookDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  @ApiProperty({ example: 'demo.google.starter' })
+  @ApiProperty({ example: 'com.example.app.subscription.starter.monthly' })
   productId: string;
 
   @IsOptional()

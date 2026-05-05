@@ -23,7 +23,7 @@ export class RestoreStoreSubscriptionDto {
   @IsOptional()
   @IsString()
   @MaxLength(200)
-  @ApiPropertyOptional({ example: 'demo.apple.pro' })
+  @ApiPropertyOptional({ example: 'com.example.app.subscription.pro.monthly' })
   productId?: string;
 
   @IsOptional()
