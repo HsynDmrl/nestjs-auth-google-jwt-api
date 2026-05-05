@@ -209,7 +209,7 @@ export class TenancyService {
       return updatedTeam;
     });
 
-    await this.auditLogService.createLog(
+    this.auditLogService.emitLog(
       'move_team',
       'Team',
       team.id,

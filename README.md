@@ -13,7 +13,7 @@ Bu proje, **NestJS + PostgreSQL + TypeORM** tabanlı, mobil (Expo) ve web admin 
 - JWT access token + device-bound refresh token rotation
 - Role/permission tabanlı yetkilendirme (RBAC)
 - Admin kullanıcı/rol/yetki yönetimi
-- Audit log interceptor
+- Asenkron audit log (CLS + EventEmitter, entity diff, redaction)
 - Captcha + failed login lockout
 - TipBox oturum/katılımcı/dağıtım akışları
 - Bildirim altyapısı (in-app/push/email, okunma, mute, maliyet takibi)
@@ -41,6 +41,7 @@ Bu proje, **NestJS + PostgreSQL + TypeORM** tabanlı, mobil (Expo) ve web admin 
 - Swagger/OpenAPI
 - Jest + ts-jest
 - ESLint + Prettier
+- EventEmitter + CLS (request context)
 
 ---
 
@@ -130,6 +131,12 @@ Global API prefix: `/v1`
 - `admin/roles` → rol yönetimi
 - `permissions` → yetki yönetimi
 - `admin/dashboard/summary` → admin panel metrik özeti
+
+### Audit Log Modülü
+- TypeORM subscriber ile INSERT/UPDATE/DELETE diff loglama
+- CLS üzerinden user/tenant context taşıma (`companyId`, `branchId`, `x-device-id`)
+- EventEmitter ile asenkron log kayıtları
+- Hassas alan redaction (`password`, `access_token`, `refresh_token`)
 
 ### Tenancy Modülü
 - Company, Branch, Team, Membership domain altyapısı

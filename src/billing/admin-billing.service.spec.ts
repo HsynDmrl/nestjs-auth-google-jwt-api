@@ -17,7 +17,7 @@ describe('AdminBillingService', () => {
     save: jest.Mock;
   };
   let purchaseRepository: { findAndCount: jest.Mock; findOne: jest.Mock };
-  let auditLogService: { createLog: jest.Mock };
+  let auditLogService: { emitLog: jest.Mock };
 
   beforeEach(async () => {
     subscriptionRepository = {
@@ -30,7 +30,7 @@ describe('AdminBillingService', () => {
       findOne: jest.fn(),
     };
     auditLogService = {
-      createLog: jest.fn(),
+      emitLog: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -100,7 +100,7 @@ describe('AdminBillingService', () => {
     );
 
     expect(subscriptionRepository.save).toHaveBeenCalled();
-    expect(auditLogService.createLog).toHaveBeenCalled();
+    expect(auditLogService.emitLog).toHaveBeenCalled();
     expect(result.status).toBe(SubscriptionStatus.CANCELED);
   });
 });

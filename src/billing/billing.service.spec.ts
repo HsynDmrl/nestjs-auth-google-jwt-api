@@ -14,12 +14,12 @@ describe('BillingService', () => {
   let service: BillingService;
   let subscriptionRepository: { findOne: jest.Mock };
   let companyRepository: { findOneOrFail: jest.Mock };
-  let auditLogService: { createLog: jest.Mock };
+  let auditLogService: { emitLog: jest.Mock };
 
   beforeEach(async () => {
     subscriptionRepository = { findOne: jest.fn() };
     companyRepository = { findOneOrFail: jest.fn() };
-    auditLogService = { createLog: jest.fn() };
+    auditLogService = { emitLog: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

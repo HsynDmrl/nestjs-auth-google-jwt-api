@@ -262,7 +262,7 @@ export class StoreBillingService {
       }),
     );
 
-    await this.auditLogService.createLog(
+    this.auditLogService.emitLog(
       'store_subscription_sync',
       'Subscription',
       savedSubscription.id,

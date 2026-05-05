@@ -443,7 +443,7 @@ export class AuthService {
     await this.refreshTokenService.revokeAllUserTokens(userId);
     const deletedUser = await this.usersService.requestAccountDeletion(userId);
 
-    await this.auditLogService.createLog(
+    this.auditLogService.emitLog(
       'delete_own_account',
       'User',
       userId,

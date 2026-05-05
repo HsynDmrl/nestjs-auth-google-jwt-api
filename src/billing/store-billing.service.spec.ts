@@ -27,7 +27,7 @@ describe('StoreBillingService', () => {
   let purchaseRepository: { save: jest.Mock; create: jest.Mock };
   let companyRepository: { findOne: jest.Mock; findOneOrFail: jest.Mock };
   let membershipRepository: { findOne: jest.Mock };
-  let auditLogService: { createLog: jest.Mock };
+  let auditLogService: { emitLog: jest.Mock };
   let googlePlayProvider: {
     platform: SubscriptionPlatform;
     verifyPurchase: jest.Mock;
@@ -55,7 +55,7 @@ describe('StoreBillingService', () => {
       findOne: jest.fn(),
     };
     auditLogService = {
-      createLog: jest.fn(),
+      emitLog: jest.fn(),
     };
     googlePlayProvider = {
       platform: SubscriptionPlatform.GOOGLE_PLAY,

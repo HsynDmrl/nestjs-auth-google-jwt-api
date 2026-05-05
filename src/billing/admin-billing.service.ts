@@ -172,7 +172,7 @@ export class AdminBillingService {
     const savedSubscription =
       await this.subscriptionRepository.save(subscription);
 
-    await this.auditLogService.createLog(
+    this.auditLogService.emitLog(
       'admin_update_subscription',
       'Subscription',
       savedSubscription.id,

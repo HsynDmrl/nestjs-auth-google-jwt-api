@@ -17,14 +17,14 @@ describe('TenancyService', () => {
   let branchRepository: { findOne: jest.Mock };
   let membershipRepository: { findOne: jest.Mock };
   let billingService: { assertTenantActionAllowed: jest.Mock };
-  let auditLogService: { createLog: jest.Mock };
+  let auditLogService: { emitLog: jest.Mock };
 
   beforeEach(async () => {
     teamRepository = { findOne: jest.fn() };
     branchRepository = { findOne: jest.fn() };
     membershipRepository = { findOne: jest.fn() };
     billingService = { assertTenantActionAllowed: jest.fn() };
-    auditLogService = { createLog: jest.fn() };
+    auditLogService = { emitLog: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

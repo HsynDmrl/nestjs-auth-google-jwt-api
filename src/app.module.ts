@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { DatabaseModule } from './database/database.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -16,7 +17,7 @@ import { TipEntriesModule } from './tip-entries/tip-entries.module';
 import { DistributionsModule } from './distributions/distributions.module';
 
 import * as session from 'express-session';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { GlobalExceptionFilter } from './core/exceptions/filters/global-exception.filter'; // Filter'ı da ekliyoruz
 import { ModelMapperService } from './model-mapper/model-mapper.service';
 import { TenancyModule } from './tenancy/tenancy.module';
@@ -24,12 +25,19 @@ import { BillingModule } from './billing/billing.module';
 import { WorkforceModule } from './workforce/workforce.module';
 import { AdminDashboardModule } from './admin/dashboard/admin-dashboard.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ClsModule } from 'nestjs-cls';
+import { AuditLogContextInterceptor } from './audit-log/audit-log-context.interceptor';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ClsModule.forRoot({
+      global: true,
+      middleware: { mount: true },
+    }),
+    EventEmitterModule.forRoot(),
     DatabaseModule,
     UsersModule,
     AdminUsersModule,
@@ -55,6 +63,10 @@ import { NotificationsModule } from './notifications/notifications.module';
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditLogContextInterceptor,
     },
   ],
 })

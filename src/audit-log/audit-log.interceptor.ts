@@ -17,19 +17,17 @@ export class AuditLogInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
     const entity = context.getClass().name;
-    const action = context.getHandler().name;
-
-    const oldValue = {}; // Eski değeri doldurmak gerek
-    const newValue = {}; // Yeni değeri doldurmak gerek
+    const action = `HTTP_${request.method ?? 'REQUEST'}`;
+    const entityId = request.params?.id ?? null;
 
     return next.handle().pipe(
-      tap(async () => {
-        await this.auditLogService.createLog(
+      tap(() => {
+        this.auditLogService.emitLog(
           action,
           entity,
-          request.params.id,
-          oldValue,
-          newValue,
+          entityId,
+          null,
+          null,
           AuditLogType.SUCCESS,
           user,
         );
