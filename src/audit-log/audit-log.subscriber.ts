@@ -119,21 +119,29 @@ export class AuditLogSubscriber implements EntitySubscriberInterface {
     newValue: Record<string, unknown> | null,
   ): void {
     const entityName = event.metadata.name ?? event.metadata.tableName;
+    const databaseEntity =
+      'databaseEntity' in event
+        ? (event.databaseEntity as { id?: string } | undefined)
+        : undefined;
     const entityId =
       (event.entity as { id?: string } | undefined)?.id ??
-      (event.databaseEntity as { id?: string } | undefined)?.id ??
+      databaseEntity?.id ??
       null;
 
-    const context = this.clsService.get<AuditLogContext>(
-      AUDIT_LOG_CONTEXT_KEY,
-    );
+    const context = this.clsService.get<AuditLogContext>(AUDIT_LOG_CONTEXT_KEY);
 
     const payload: AuditLogEventPayload = {
       action: `${operation}_${entityName.toUpperCase()}`,
       entity: event.metadata.tableName,
       entityId,
-      oldValue: redactSensitiveFields(oldValue) as Record<string, unknown> | null,
-      newValue: redactSensitiveFields(newValue) as Record<string, unknown> | null,
+      oldValue: redactSensitiveFields(oldValue) as Record<
+        string,
+        unknown
+      > | null,
+      newValue: redactSensitiveFields(newValue) as Record<
+        string,
+        unknown
+      > | null,
       type: AuditLogType.SUCCESS,
       userId: context?.userId,
       tenantContext: context

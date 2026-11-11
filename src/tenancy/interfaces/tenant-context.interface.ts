@@ -11,4 +11,6 @@ export interface RequestWithTenantContext {
   user?: { id?: string };
   headers: Record<string, string | string[] | undefined>;
   tenantContext?: TenantContext;
+  ip?: string;
+  socket?: { remoteAddress?: string };
 }

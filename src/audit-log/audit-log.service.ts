@@ -59,9 +59,7 @@ export class AuditLogService {
     user: Partial<User> | undefined,
     tenantContext?: AuditLogTenantContext | null,
   ): void {
-    const context = this.clsService.get<AuditLogContext>(
-      AUDIT_LOG_CONTEXT_KEY,
-    );
+    const context = this.clsService.get<AuditLogContext>(AUDIT_LOG_CONTEXT_KEY);
     const payload: AuditLogEventPayload = {
       action,
       entity,
@@ -71,7 +69,8 @@ export class AuditLogService {
       type,
       userId: user?.id ?? context?.userId,
       tenantContext:
-        tenantContext ?? (context
+        tenantContext ??
+        (context
           ? { companyId: context.companyId, branchId: context.branchId }
           : null),
       ipAddress: context?.ipAddress ?? null,

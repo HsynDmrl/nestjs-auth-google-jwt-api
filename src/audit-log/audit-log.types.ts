@@ -1,4 +1,7 @@
-import { AuditLogTenantContext, AuditLogType } from 'src/entities/audit-log.entity';
+import {
+  AuditLogTenantContext,
+  AuditLogType,
+} from 'src/entities/audit-log.entity';
 
 export interface AuditLogEventPayload {
   action: string;

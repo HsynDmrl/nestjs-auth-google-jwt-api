@@ -9,9 +9,7 @@ import { ClsService } from 'nestjs-cls';
 import { AUDIT_LOG_CONTEXT_KEY, AuditLogContext } from './audit-log-context';
 import { RequestWithTenantContext } from 'src/tenancy/interfaces/tenant-context.interface';
 
-const getHeaderValue = (
-  value?: string | string[],
-): string | undefined => {
+const getHeaderValue = (value?: string | string[]): string | undefined => {
   if (!value) {
     return undefined;
   }
