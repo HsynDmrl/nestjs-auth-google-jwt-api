@@ -48,10 +48,9 @@ describe('AuditLogContextInterceptor', () => {
       socket: { remoteAddress: '10.1.1.1' },
     };
 
-    interceptor.intercept(
-      createHttpContext(request),
-      { handle } as unknown as any,
-    );
+    interceptor.intercept(createHttpContext(request), {
+      handle,
+    } as unknown as any);
 
     expect(clsService.set).toHaveBeenCalledWith(AUDIT_LOG_CONTEXT_KEY, {
       userId: 'user-1',

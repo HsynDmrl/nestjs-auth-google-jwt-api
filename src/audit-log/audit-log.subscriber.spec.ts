@@ -33,7 +33,11 @@ describe('AuditLogSubscriber', () => {
       })),
     } as unknown as ClsService;
 
-    const subscriber = new AuditLogSubscriber(dataSource, eventEmitter, clsService);
+    const subscriber = new AuditLogSubscriber(
+      dataSource,
+      eventEmitter,
+      clsService,
+    );
     return { subscriber, dataSource, eventEmitter, clsService };
   };
 
@@ -87,7 +91,10 @@ describe('AuditLogSubscriber', () => {
   it('should emit UPDATE audit event only for changed non-ignored fields', () => {
     const { subscriber, eventEmitter } = createSubscriber();
     const event = createBaseEvent();
-    event.updatedColumns = [{ propertyName: 'password' }, { propertyName: 'updatedAt' }];
+    event.updatedColumns = [
+      { propertyName: 'password' },
+      { propertyName: 'updatedAt' },
+    ];
     event.databaseEntity = { id: 'entity-1', password: 'old-secret' };
     event.entity = { id: 'entity-1', password: 'new-secret' };
 
