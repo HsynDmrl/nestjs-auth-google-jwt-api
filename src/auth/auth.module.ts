@@ -30,7 +30,7 @@ import { CaptchaModule } from 'src/captcha/captcha.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '60m' },
+        signOptions: { expiresIn: '15m' },
       }),
     }),
     TypeOrmModule.forFeature([Role, RefreshToken, PasswordReset]),
@@ -38,11 +38,17 @@ import { CaptchaModule } from 'src/captcha/captcha.module';
     EmailConfirmationModule,
     AuditLogModule,
     FailedLoginAttemptModule,
-    CaptchaModule, 
+    CaptchaModule,
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy, GoogleStrategy, EmailService, PasswordResetService],
+  providers: [
+    AuthService,
+    LocalStrategy,
+    JwtStrategy,
+    GoogleStrategy,
+    EmailService,
+    PasswordResetService,
+  ],
   controllers: [AuthController, GoogleAuthController],
-  exports: [AuthService], 
+  exports: [AuthService],
 })
 export class AuthModule {}
-

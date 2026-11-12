@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EmailConfirmation } from 'src/entities/email-confirmation.entity';
 import { User } from 'src/entities/user.entity';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -29,7 +29,11 @@ export class EmailConfirmationService {
       relations: ['user'],
     });
 
-    if (!emailConfirmation || emailConfirmation.expiresAt < new Date() || emailConfirmation.isConfirmed) {
+    if (
+      !emailConfirmation ||
+      emailConfirmation.expiresAt < new Date() ||
+      emailConfirmation.isConfirmed
+    ) {
       throw new Error('Invalid or expired confirmation token');
     }
 

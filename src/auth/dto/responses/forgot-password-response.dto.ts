@@ -1,4 +1,3 @@
 export class ForgotPasswordResponseDto {
-    readonly message: string;
-  }
-  
+  readonly message: string;
+}

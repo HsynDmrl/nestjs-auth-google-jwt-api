@@ -1,4 +1,3 @@
 export class ConfirmEmailResponseDto {
-    readonly message: string;
-  }
-  
+  readonly message: string;
+}

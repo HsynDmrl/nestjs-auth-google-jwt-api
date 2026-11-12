@@ -1,11 +1,26 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { AuditLog, AuditLogType } from 'src/entities/audit-log.entity';
+import { ClsService } from 'nestjs-cls';
+import {
+  AuditLog,
+  AuditLogTenantContext,
+  AuditLogType,
+} from 'src/entities/audit-log.entity';
 import { UserActivity } from 'src/entities/user-activity.entity';
 import { User } from 'src/entities/user.entity';
 import { Repository } from 'typeorm';
 import * as requestIp from 'request-ip';
 import * as geoip from 'geoip-lite';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginatedResponse } from 'src/common/interfaces/paginated-response.interface';
+import {
+  buildPaginationMeta,
+  normalizePagination,
+} from 'src/common/utils/pagination.util';
+import { AUDIT_LOG_CONTEXT_KEY, AuditLogContext } from './audit-log-context';
+import { AUDIT_LOG_CREATED_EVENT } from './audit-log.constants';
+import { AuditLogEventPayload } from './audit-log.types';
 
 @Injectable()
 export class AuditLogService {
@@ -14,34 +29,81 @@ export class AuditLogService {
     private auditLogRepository: Repository<AuditLog>,
     @InjectRepository(UserActivity)
     private userActivityRepository: Repository<UserActivity>,
+    private readonly eventEmitter: EventEmitter2,
+    private readonly clsService: ClsService,
   ) {}
-  
-  async findAll(): Promise<AuditLog[]> {
-    return this.auditLogRepository.find();
+
+  async findAll(
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<AuditLog>> {
+    const { page, limit, skip } = normalizePagination(query.page, query.limit);
+    const [data, total] = await this.auditLogRepository.findAndCount({
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' },
+      relations: ['user'],
+    });
+    return {
+      data,
+      meta: buildPaginationMeta(page, limit, total),
+    };
   }
-  
-  async createLog(
+
+  emitLog(
     action: string,
     entity: string,
-    entityId: string,
-    oldValue: any,
-    newValue: any,
+    entityId: string | null,
+    oldValue: unknown | null,
+    newValue: unknown | null,
     type: AuditLogType,
-    user: Partial<User>,
-  ): Promise<AuditLog> {
-    const auditLog = this.auditLogRepository.create({
+    user: Partial<User> | undefined,
+    tenantContext?: AuditLogTenantContext | null,
+  ): void {
+    const context = this.clsService.get<AuditLogContext>(AUDIT_LOG_CONTEXT_KEY);
+    const payload: AuditLogEventPayload = {
       action,
       entity,
-      entityId,
-      oldValue,
-      newValue,
+      entityId: entityId ?? null,
+      oldValue: oldValue ?? null,
+      newValue: newValue ?? null,
       type,
-      user,
+      userId: user?.id ?? context?.userId,
+      tenantContext:
+        tenantContext ??
+        (context
+          ? { companyId: context.companyId, branchId: context.branchId }
+          : null),
+      ipAddress: context?.ipAddress ?? null,
+      userAgent: context?.userAgent ?? null,
+      deviceId: context?.deviceId ?? null,
+    };
+
+    this.eventEmitter.emit(AUDIT_LOG_CREATED_EVENT, payload);
+  }
+
+  @OnEvent(AUDIT_LOG_CREATED_EVENT, { async: true })
+  async createLog(payload: AuditLogEventPayload): Promise<AuditLog> {
+    const auditLog = this.auditLogRepository.create({
+      action: payload.action,
+      entity: payload.entity,
+      entityId: payload.entityId ?? null,
+      oldValue: (payload.oldValue ?? null) as Record<string, unknown> | null,
+      newValue: (payload.newValue ?? null) as Record<string, unknown> | null,
+      type: payload.type ?? AuditLogType.SUCCESS,
+      user: payload.userId ? ({ id: payload.userId } as User) : null,
+      tenantContext: payload.tenantContext ?? null,
+      ipAddress: payload.ipAddress ?? null,
+      userAgent: payload.userAgent ?? null,
+      deviceId: payload.deviceId ?? null,
     });
     return this.auditLogRepository.save(auditLog);
   }
-  
-  async logUserActivity(user: User, request: any, type: AuditLogType): Promise<UserActivity> {
+
+  async logUserActivity(
+    user: User,
+    request: any,
+    type: AuditLogType,
+  ): Promise<UserActivity> {
     const clientIp = requestIp.getClientIp(request); // IP adresini al
     const geo = geoip.lookup(clientIp); // GeoIP ile ülke ve şehir bilgilerini al
 
@@ -56,19 +118,39 @@ export class AuditLogService {
 
     return this.userActivityRepository.save(userActivity);
   }
-  
-  async findAllUserActivities(): Promise<UserActivity[]> {
-    return this.userActivityRepository.find({ 
-        relations: ['user'] // Kullanıcı ilişkisini dahil et
-    });
-}
 
-
-  async findUserActivitiesByUserId(userId: string): Promise<UserActivity[]> {
-    return this.userActivityRepository.find({
-        where: { user: { id: userId } },  // Sadece JWT'den alınan kimlik kullanılır
-        relations: ['user'],
+  async findAllUserActivities(
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<UserActivity>> {
+    const { page, limit, skip } = normalizePagination(query.page, query.limit);
+    const [data, total] = await this.userActivityRepository.findAndCount({
+      relations: ['user'],
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' },
     });
+    return {
+      data,
+      meta: buildPaginationMeta(page, limit, total),
+    };
+  }
+
+  async findUserActivitiesByUserId(
+    userId: string,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponse<UserActivity>> {
+    const { page, limit, skip } = normalizePagination(query.page, query.limit);
+    const [data, total] = await this.userActivityRepository.findAndCount({
+      where: { user: { id: userId } },
+      relations: ['user'],
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' },
+    });
+    return {
+      data,
+      meta: buildPaginationMeta(page, limit, total),
+    };
   }
 
   // Başarısız giriş denemesini kaydetme
@@ -86,6 +168,5 @@ export class AuditLogService {
 
     // createdAt otomatik olarak kaydedilecektir
     return this.userActivityRepository.save(failedLogin);
-}
-
+  }
 }

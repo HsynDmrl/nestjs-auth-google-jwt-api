@@ -5,8 +5,7 @@ import { FailedLoginAttempt } from 'src/entities/failed-login-attempt.entity';
 import { CaptchaModule } from 'src/captcha/captcha.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([FailedLoginAttempt]),
-  CaptchaModule,],
+  imports: [TypeOrmModule.forFeature([FailedLoginAttempt]), CaptchaModule],
   providers: [FailedLoginAttemptService],
   exports: [FailedLoginAttemptService],
 })

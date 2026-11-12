@@ -5,21 +5,21 @@ import { AuditLogType } from './audit-log.entity';
 
 @Entity()
 export class UserActivity extends BaseEntity {
-    @Column()
-    action: string;
+  @Column()
+  action: string;
 
-    @Column()
-    ipAddress: string;
+  @Column()
+  ipAddress: string;
 
-    @Column()
-    country: string;
+  @Column()
+  country: string;
 
-    @Column()
-    city: string;
+  @Column()
+  city: string;
 
-    @Column({ type: 'enum', enum: AuditLogType })
-    type: AuditLogType;
+  @Column({ type: 'enum', enum: AuditLogType })
+  type: AuditLogType;
 
-    @ManyToOne(() => User, user => user.activities)
-    user: User;
+  @ManyToOne(() => User, (user) => user.activities)
+  user: User;
 }

@@ -1,4 +1,3 @@
 export class RegisterResponseDto {
-    readonly message: string;
-  }
-  
+  readonly message: string;
+}

@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, ForbiddenException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from 'src/entities/user.entity';
@@ -29,7 +34,7 @@ export class CheckUserOrAdminGuard implements CanActivate {
       throw new ForbiddenException('Kullanıcı rolleri bulunamadı.');
     }
 
-    const isAdmin = foundUser.roles.some(role => role.name === 'admin'); // Kullanıcının admin olup olmadığını kontrol ediyoruz
+    const isAdmin = foundUser.roles.some((role) => role.name === 'admin'); // Kullanıcının admin olup olmadığını kontrol ediyoruz
 
     // `userId` parametresini URL'den alıyoruz
     const resourceUserId = request.params.userId;

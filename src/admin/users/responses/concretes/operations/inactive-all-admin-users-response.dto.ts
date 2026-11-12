@@ -1,3 +1,3 @@
-import { BaseAdminUserResponseDto } from "../../abstracts/operations/base-admin-users-response.dto";
+import { BaseAdminUserResponseDto } from '../../abstracts/operations/base-admin-users-response.dto';
 
-export class InactiveAllAdminUsersResponseDto extends BaseAdminUserResponseDto { }
+export class InactiveAllAdminUsersResponseDto extends BaseAdminUserResponseDto {}

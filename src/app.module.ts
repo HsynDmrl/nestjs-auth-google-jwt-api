@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { DatabaseModule } from './database/database.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -11,17 +12,32 @@ import { SeedModule } from './seed/seed.module';
 import { PermissionsModule } from './admin/permissions/permissions.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { CaptchaModule } from './captcha/captcha.module';
+import { TipSessionsModule } from './tip-sessions/tip-sessions.module';
+import { TipEntriesModule } from './tip-entries/tip-entries.module';
+import { DistributionsModule } from './distributions/distributions.module';
 
 import * as session from 'express-session';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { GlobalExceptionFilter } from './core/exceptions/filters/global-exception.filter'; // Filter'ı da ekliyoruz
 import { ModelMapperService } from './model-mapper/model-mapper.service';
+import { TenancyModule } from './tenancy/tenancy.module';
+import { BillingModule } from './billing/billing.module';
+import { WorkforceModule } from './workforce/workforce.module';
+import { AdminDashboardModule } from './admin/dashboard/admin-dashboard.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ClsModule } from 'nestjs-cls';
+import { AuditLogContextInterceptor } from './audit-log/audit-log-context.interceptor';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ClsModule.forRoot({
+      global: true,
+      middleware: { mount: true },
+    }),
+    EventEmitterModule.forRoot(),
     DatabaseModule,
     UsersModule,
     AdminUsersModule,
@@ -31,14 +47,26 @@ import { ModelMapperService } from './model-mapper/model-mapper.service';
     PermissionsModule,
     AuditLogModule,
     CaptchaModule,
+    TipSessionsModule,
+    TipEntriesModule,
+    DistributionsModule,
+    TenancyModule,
+    BillingModule,
+    WorkforceModule,
+    AdminDashboardModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [
-    AppService, 
-    ModelMapperService, 
+    AppService,
+    ModelMapperService,
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditLogContextInterceptor,
     },
   ],
 })
@@ -50,7 +78,12 @@ export class AppModule {
           secret: process.env.SECRET_KEY,
           resave: false,
           saveUninitialized: false,
-          cookie: { maxAge: 3600000 }, // 1 saatlik oturum süresi
+          cookie: {
+            maxAge: 3600000, // 1 saatlik oturum süresi
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+          },
         }),
       )
       .forRoutes('*');

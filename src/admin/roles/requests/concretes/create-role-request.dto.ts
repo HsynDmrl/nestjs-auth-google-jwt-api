@@ -1,4 +1,3 @@
-import { BaseRoleRequestDto } from "../abstracts/base-role-request.dto";
+import { BaseRoleRequestDto } from '../abstracts/base-role-request.dto';
 
-export class CreateRoleRequestDto extends BaseRoleRequestDto {
-}
+export class CreateRoleRequestDto extends BaseRoleRequestDto {}

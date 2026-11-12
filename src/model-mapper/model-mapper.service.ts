@@ -11,4 +11,3 @@ export class ModelMapperService {
     return plainToClass(entityClass, dto);
   }
 }
-

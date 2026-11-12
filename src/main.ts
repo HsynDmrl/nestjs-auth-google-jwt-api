@@ -15,7 +15,18 @@ async function bootstrap() {
   app.use(helmet());
 
   // CORS'u etkinleştir, çapraz kaynak isteklerine izin verir
-  app.enableCors();
+  app.enableCors({
+    credentials: true,
+    exposedHeaders: ['authorization'],
+    allowedHeaders: [
+      'content-type',
+      'authorization',
+      'x-device-id',
+      'x-branch-id',
+    ],
+  });
+
+  app.setGlobalPrefix('v1');
 
   // Rate limiting uygula, DDoS saldırılarından korunmak için her IP'ye 15 dakika içinde en fazla 100 istek izni verir
   app.use(
@@ -58,4 +69,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-
